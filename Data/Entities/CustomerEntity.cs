@@ -11,5 +11,13 @@ namespace Data.Entities
         [Required]
         [Column(TypeName = "nvarchar(50)")]
         public string CustomerName { get; set; } = null!;
+
+        [Required]
+        [Column(TypeName = "nvarchar(100)")]
+        public string CustomerEmail { get; set; } = null!;
+
+        [Required]
+        [Column(TypeName = "nvarchar(15)")]
+        public string CustomerPhone { get; set; } = null!;
     }
 }

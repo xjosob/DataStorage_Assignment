@@ -5,10 +5,10 @@ using Data.Entities;
 public class ProjectEntity
 {
     [Key]
-    public int Id { get; set; }
+    public string Id { get; set; } = null!;
 
     [Required]
-    [Column(TypeName = "nvarchar(50)")]
+    [MaxLength(50)]
     public string ProjectName { get; set; } = null!;
     public string? ProjectDescription { get; set; }
 

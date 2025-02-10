@@ -32,6 +32,8 @@ namespace Data.Repositories
             {
                 entity.Id = customerEntity.Id;
                 entity.CustomerName = customerEntity.CustomerName;
+                entity.CustomerEmail = customerEntity.CustomerEmail;
+                entity.CustomerPhone = customerEntity.CustomerPhone;
                 await _context.SaveChangesAsync();
                 return true;
             }

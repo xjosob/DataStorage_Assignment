@@ -11,6 +11,10 @@ namespace Business.Services
         // Create
         public async Task<ProjectEntity> CreateProjectAsync(ProjectEntity projectEntity)
         {
+            if (string.IsNullOrEmpty(projectEntity.Id))
+            {
+                throw new InvalidOperationException("Project ID cannot be null or empty.");
+            }
             await _context.Projects.AddAsync(projectEntity);
             await _context.SaveChangesAsync();
             return projectEntity;
@@ -22,7 +26,7 @@ namespace Business.Services
             return await _context.Projects.ToListAsync();
         }
 
-        public async Task<ProjectEntity> GetProjectByIdAsync(int id)
+        public async Task<ProjectEntity> GetProjectByIdAsync(string id)
         {
             var projectEntity = await _context.Projects.FirstOrDefaultAsync(x => x.Id == id);
             return projectEntity ?? null!;
@@ -37,7 +41,7 @@ namespace Business.Services
         }
 
         // Delete
-        public async Task<bool> DeleteProjectAsync(int id)
+        public async Task<bool> DeleteProjectAsync(string id)
         {
             var projectEntity = _context.Projects.FirstOrDefault(x => x.Id == id);
             if (projectEntity == null)
