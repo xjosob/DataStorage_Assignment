@@ -27,7 +27,7 @@ public class ProjectEntity
 
     [Required]
     public int StatusId { get; set; }
-    public StatusTypeEntity Status { get; set; } = null!;
+    public StatusTypes Status { get; set; } = null!;
     public int UserId { get; set; }
 
     [Required]

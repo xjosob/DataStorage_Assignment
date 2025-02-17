@@ -1,4 +1,5 @@
-﻿using Business.Interfaces;
+﻿using Business.Factories;
+using Business.Interfaces;
 using Business.Services;
 using Data.Contexts;
 using Microsoft.EntityFrameworkCore;
@@ -13,5 +14,7 @@ serviceCollection.AddDbContext<DataContext>(options =>
     );
 });
 serviceCollection.AddScoped<IUserService, UserService>();
+serviceCollection.AddScoped<ProjectFactory>();
+serviceCollection.AddScoped<UserFactory>();
 
 var serviceProvider = serviceCollection.BuildServiceProvider();

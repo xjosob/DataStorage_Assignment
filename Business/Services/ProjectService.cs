@@ -41,16 +41,14 @@ namespace Business.Services
         }
 
         // Delete
-        public async Task<bool> DeleteProjectAsync(string id)
+        public async Task<ProjectEntity> DeleteProjectAsync(string id)
         {
-            var projectEntity = _context.Projects.FirstOrDefault(x => x.Id == id);
-            if (projectEntity == null)
-            {
-                return false;
-            }
+            var projectEntity =
+                await _context.Projects.FirstOrDefaultAsync(x => x.Id == id)
+                ?? throw new InvalidOperationException("Project not found.");
             _context.Projects.Remove(projectEntity);
             await _context.SaveChangesAsync();
-            return true;
+            return projectEntity;
         }
     }
 }

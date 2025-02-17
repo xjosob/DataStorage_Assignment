@@ -9,7 +9,7 @@ namespace Data.Repositories
         private readonly DataContext _context = context;
 
         // Create
-        public async Task<bool> AddStatusAsync(StatusTypeEntity statusTypeEntity)
+        public async Task<bool> AddStatusAsync(StatusTypes statusTypeEntity)
         {
             await _context.StatusTypes.AddAsync(statusTypeEntity);
             await _context.SaveChangesAsync();
@@ -17,13 +17,13 @@ namespace Data.Repositories
         }
 
         // Read
-        public async Task<List<StatusTypeEntity>> GetStatusAsync()
+        public async Task<List<StatusTypes>> GetStatusAsync()
         {
             return await _context.StatusTypes.ToListAsync();
         }
 
         // Update
-        public async Task<bool> UpdateAsync(StatusTypeEntity statusTypeEntity)
+        public async Task<bool> UpdateAsync(StatusTypes statusTypeEntity)
         {
             var entity = await _context.StatusTypes.FirstOrDefaultAsync(x =>
                 x.Id == statusTypeEntity.Id

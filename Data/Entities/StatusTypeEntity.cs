@@ -2,7 +2,7 @@
 
 namespace Data.Entities
 {
-    public class StatusTypeEntity
+    public class StatusTypes
     {
         [Key]
         public int Id { get; set; }

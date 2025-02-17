@@ -9,5 +9,6 @@
         public int CustomerId { get; set; }
         public int StatusId { get; set; }
         public int ProductId { get; set; }
+        public int UserId { get; set; }
     }
 }

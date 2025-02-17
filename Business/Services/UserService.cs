@@ -9,7 +9,7 @@ namespace Business.Services
     {
         private readonly DataContext _context = context;
 
-        public async Task<UserEntity> CreateUser(UserEntity userEntity)
+        public async Task<UserEntity> CreateUserAsync(UserEntity userEntity)
         {
             await _context.Users.AddAsync(userEntity);
             await _context.SaveChangesAsync();
@@ -34,16 +34,14 @@ namespace Business.Services
             return userEntity;
         }
 
-        public async Task<bool> DeleteUserAsync(int id)
+        public async Task<UserEntity> DeleteUserAsync(int id)
         {
-            var userEntity = await _context.Users.FirstOrDefaultAsync(x => x.Id == id);
-            if (userEntity == null)
-            {
-                return false;
-            }
+            var userEntity =
+                await _context.Users.FirstOrDefaultAsync(x => x.Id == id)
+                ?? throw new InvalidOperationException("User not found.");
             _context.Users.Remove(userEntity);
             await _context.SaveChangesAsync();
-            return true;
+            return userEntity;
         }
     }
 }
