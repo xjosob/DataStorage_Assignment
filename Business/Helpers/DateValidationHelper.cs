@@ -14,10 +14,10 @@
             );
         }
 
-        // Checks if a date is in the future
-        public static bool IsFutureDate(DateTime date)
+        // Checks if a date is today or in the future
+        public static bool IsFutureOrTodayDate(DateTime date)
         {
-            return date > DateTime.Now;
+            return date >= DateTime.Now.Date; // Use .Date to ignore the time component
         }
 
         // Validates that the end date is after the start date

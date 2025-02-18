@@ -1,4 +1,5 @@
-﻿using Business.Factories;
+﻿using System.Diagnostics;
+using Business.Factories;
 using Business.Helpers;
 using Business.Interfaces;
 using Business.Models;
@@ -12,6 +13,7 @@ namespace Presentation.ConsoleApp.Dialogs
         IProjectService projectService,
         IUserService userService,
         IStatusService statusService,
+        IProductService productService,
         ProjectFactory projectFactory,
         UserFactory userFactory
     ) : IMenuDialog
@@ -20,6 +22,7 @@ namespace Presentation.ConsoleApp.Dialogs
         private readonly IProjectService _projectService = projectService;
         private readonly IUserService _userService = userService;
         private readonly IStatusService _statusService = statusService;
+        private readonly IProductService _productService = productService;
         private readonly ProjectFactory _projectFactory = projectFactory;
         private readonly UserFactory _userFactory = userFactory;
 
@@ -40,7 +43,7 @@ namespace Presentation.ConsoleApp.Dialogs
                 Console.WriteLine("L. List Users");
                 Console.WriteLine("U. Update User");
                 Console.WriteLine("D. Delete User");
-                Console.WriteLine("Escape. Exit");
+                Console.WriteLine("Esc. Exit");
                 var key = Console.ReadKey(true).Key;
                 switch (key)
                 {
@@ -155,9 +158,9 @@ namespace Presentation.ConsoleApp.Dialogs
                 return;
             }
             DateTime projectStartDate = DateTime.Parse(projectStartDateInput);
-            if (!DateValidationHelper.IsFutureDate(projectStartDate))
+            if (!DateValidationHelper.IsFutureOrTodayDate(projectStartDate))
             {
-                Console.WriteLine("Start date must be in the future!");
+                Console.WriteLine("Start date must be today or in the future!");
                 Console.ReadKey();
                 return;
             }
@@ -183,10 +186,9 @@ namespace Presentation.ConsoleApp.Dialogs
             }
 
             var statusTypes = await _statusService.GetStatusTypesAsync();
-            if (
-                !int.TryParse(Console.ReadLine(), out var statusId)
-                || !statusTypes.Any(s => s.Id == statusId)
-            )
+            Console.WriteLine($"Status types count: {statusTypes?.Count()}");
+
+            if (statusTypes == null || !statusTypes.Any())
             {
                 Console.WriteLine("No status types found!");
                 Console.ReadKey();
@@ -197,7 +199,7 @@ namespace Presentation.ConsoleApp.Dialogs
             foreach (var status in statusTypes)
             {
                 Console.WriteLine($"Id: {status.Id}");
-                Console.WriteLine($"Name: {status.StatusName}");
+                Console.WriteLine($"Status: {status.StatusName}");
             }
 
             Console.WriteLine("Enter status Id: ");
@@ -208,6 +210,35 @@ namespace Presentation.ConsoleApp.Dialogs
             )
             {
                 Console.WriteLine("Invalid status Id!");
+                Console.ReadKey();
+                return;
+            }
+
+            var products = await _productService.GetProductsAsync();
+
+            var selectedProduct = products.FirstOrDefault(p => p.Id == existingProject.Product.Id);
+            if (selectedProduct == null)
+            {
+                Console.WriteLine("Invalid product selection!");
+                Console.ReadKey();
+                return;
+            }
+
+            Console.WriteLine("Select a product or leave empty to keep: ");
+            foreach (var product in products)
+            {
+                Console.WriteLine($"Id: {product.Id}");
+                Console.WriteLine($"Status: {product.ProductName}");
+            }
+
+            Console.WriteLine("Enter product Id: ");
+            var productIdInput = Console.ReadLine()!;
+            if (
+                !int.TryParse(productIdInput, out var productId)
+                || !products.Any(p => p.Id == productId)
+            )
+            {
+                Console.WriteLine("Invalid product Id!");
                 Console.ReadKey();
                 return;
             }
@@ -300,6 +331,7 @@ namespace Presentation.ConsoleApp.Dialogs
                     ? existingProject.EndDate
                     : DateTime.Parse(projectEndDateInput),
                 StatusId = statusIdInput,
+                Product = selectedProduct,
                 CustomerId = customerId,
                 UserId = userId,
             };
@@ -318,83 +350,90 @@ namespace Presentation.ConsoleApp.Dialogs
 
         private async Task ListProjects()
         {
-            while (true)
+            Console.Clear();
+            var projects = await _projectService.GetProjectsAsync();
+            if (projects.Any() && projects != null)
             {
-                Console.Clear();
-                var projects = await _projectService.GetProjectsAsync();
-                if (projects.Any() && projects != null)
+                foreach (var project in projects)
                 {
-                    foreach (var project in projects)
-                    {
-                        Console.WriteLine($"Name: {project.ProjectName}");
-                        Console.WriteLine($"Description: {project.ProjectDescription}");
-                        Console.WriteLine($"Start date: {project.StartDate}");
-                        Console.WriteLine($"End date: {project.EndDate}");
-                        Console.WriteLine($"Status: {project.Status}");
-                        Console.WriteLine($"Customer: {project.Customer}");
-                    }
+                    Console.WriteLine($"Name: {project.ProjectName}");
+                    Console.WriteLine($"Description: {project.ProjectDescription}");
+                    Console.WriteLine($"Start date: {project.StartDate}");
+                    Console.WriteLine($"End date: {project.EndDate}");
+                    Console.WriteLine($"Status: {project.Status}");
+                    Console.WriteLine($"Customer: {project.Customer}");
                 }
-                else
-                {
-                    Console.WriteLine("No projects found!");
-                }
-                Console.ReadKey();
-                return;
             }
+            else
+            {
+                Console.WriteLine("No projects found!");
+            }
+            Console.ReadKey();
+            return;
         }
 
         private async Task CreateProject()
         {
             Console.Clear();
+            string projectName;
             Console.WriteLine("Enter project name:");
-            var projectName = Console.ReadLine()!;
-            if (string.IsNullOrEmpty(projectName.Trim()))
+            do
             {
-                Console.WriteLine("Project name cannot be empty!");
-                Console.ReadKey();
-                return;
-            }
-            Console.WriteLine("Enter project description:");
+                projectName = Console.ReadLine()!;
+                if (string.IsNullOrEmpty(projectName.Trim()))
+                {
+                    Console.WriteLine("Project name cannot be empty! Please try again: ");
+                }
+            } while (string.IsNullOrEmpty(projectName.Trim()));
+
+            Console.WriteLine("Enter project description(optional):");
             var projectDescription = Console.ReadLine()!;
+
             Console.WriteLine("Enter project start date (yyyy-MM-dd):");
-            var projectStartDateInput = Console.ReadLine()!;
-            if (!DateValidationHelper.IsValidDate(projectStartDateInput))
+            DateTime projectStartDate = DateTime.MinValue;
+            do
             {
-                Console.WriteLine("Invalid date format! Please use yyyy-MM-dd.");
-                Console.ReadKey();
-                return;
-            }
-            DateTime projectStartDate = DateTime.Parse(projectStartDateInput);
-            if (!DateValidationHelper.IsFutureDate(projectStartDate))
-            {
-                Console.WriteLine("Start date must be in the future!");
-                Console.ReadKey();
-                return;
-            }
-            Console.WriteLine("Enter Project End Date (yyyy-MM-dd):");
-            var projectEndDateInput = Console.ReadLine()!;
+                var projectStartDateInput = Console.ReadLine()!;
+                if (!DateValidationHelper.IsValidDate(projectStartDateInput))
+                {
+                    Console.WriteLine("Invalid date format! Please use yyyy-MM-dd: ");
+                    continue;
+                }
+                projectStartDate = DateTime.Parse(projectStartDateInput);
+                if (!DateValidationHelper.IsFutureOrTodayDate(projectStartDate))
+                {
+                    Console.WriteLine(
+                        "Start date must be today or in the future! Please try again: "
+                    );
+                }
+            } while (!DateValidationHelper.IsValidDate(projectStartDate.ToString("yyy-MM-dd")));
+
+            Console.WriteLine("(optional)Enter project end date (yyyy-MM-dd): ");
             DateTime? projectEndDate = null;
-            if (!string.IsNullOrEmpty(projectEndDateInput))
+            while (true)
             {
+                var projectEndDateInput = Console.ReadLine()!;
+                if (string.IsNullOrEmpty(projectEndDateInput))
+                {
+                    break;
+                }
                 if (!DateValidationHelper.IsValidDate(projectEndDateInput))
                 {
-                    Console.WriteLine("Invalid date format! Please use yyyy-MM-dd.");
-                    Console.ReadKey();
-                    return;
+                    Console.WriteLine("Invalid date format! Please use yyyy-MM-dd: ");
+                    continue;
                 }
                 projectEndDate = DateTime.Parse(projectEndDateInput);
                 if (!DateValidationHelper.IsEndDateAfterStartDate(projectStartDate, projectEndDate))
                 {
                     Console.WriteLine("End date must be after start date!");
-                    Console.ReadKey();
-                    return;
+                    continue;
                 }
+                break;
             }
+
             var statusTypes = await _statusService.GetStatusTypesAsync();
-            if (
-                !int.TryParse(Console.ReadLine(), out var statusId)
-                || !statusTypes.Any(s => s.Id == statusId)
-            )
+
+            if (statusTypes == null || !statusTypes.Any())
             {
                 Console.WriteLine("No status types found!");
                 Console.ReadKey();
@@ -416,6 +455,33 @@ namespace Presentation.ConsoleApp.Dialogs
             )
             {
                 Console.WriteLine("Invalid status Id!");
+                Console.ReadKey();
+                return;
+            }
+
+            var products = await _productService.GetProductsAsync();
+            if (products == null || !products.Any())
+            {
+                Console.WriteLine("No products found!");
+                Console.ReadKey();
+                return;
+            }
+
+            Console.WriteLine("Select a product: ");
+            foreach (var product in products)
+            {
+                Console.WriteLine($"Id: {product.Id}");
+                Console.WriteLine($"Name: {product.ProductName}");
+            }
+
+            Console.WriteLine("Enter product Id: ");
+            var productIdInput = Console.ReadLine()!;
+            if (
+                !int.TryParse(productIdInput, out var productId)
+                || !products.Any(p => p.Id == productId)
+            )
+            {
+                Console.WriteLine("Invalid product Id!");
                 Console.ReadKey();
                 return;
             }

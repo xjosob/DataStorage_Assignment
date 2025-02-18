@@ -18,6 +18,7 @@ serviceCollection.AddScoped<IUserService, UserService>();
 serviceCollection.AddScoped<ICustomerService, CustomerService>();
 serviceCollection.AddScoped<IProjectService, ProjectService>();
 serviceCollection.AddScoped<IStatusService, StatusService>();
+serviceCollection.AddScoped<IProductService, ProductService>();
 serviceCollection.AddScoped<ProjectFactory>();
 serviceCollection.AddScoped<UserFactory>();
 serviceCollection.AddScoped<MenuDialog>();
