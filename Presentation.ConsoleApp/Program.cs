@@ -15,11 +15,12 @@ serviceCollection.AddDbContext<DataContext>(options =>
     );
 });
 serviceCollection.AddScoped<IUserService, UserService>();
+serviceCollection.AddScoped<ICustomerService, CustomerService>();
+serviceCollection.AddScoped<IProjectService, ProjectService>();
+serviceCollection.AddScoped<IStatusService, StatusService>();
 serviceCollection.AddScoped<ProjectFactory>();
 serviceCollection.AddScoped<UserFactory>();
 serviceCollection.AddScoped<MenuDialog>();
-serviceCollection.AddScoped<ICustomerService, CustomerService>();
-serviceCollection.AddScoped<IProjectService, ProjectService>();
 
 var serviceProvider = serviceCollection.BuildServiceProvider();
 

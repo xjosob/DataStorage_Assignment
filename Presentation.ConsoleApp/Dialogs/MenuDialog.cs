@@ -11,6 +11,7 @@ namespace Presentation.ConsoleApp.Dialogs
         ICustomerService customerService,
         IProjectService projectService,
         IUserService userService,
+        IStatusService statusService,
         ProjectFactory projectFactory,
         UserFactory userFactory
     ) : IMenuDialog
@@ -18,6 +19,7 @@ namespace Presentation.ConsoleApp.Dialogs
         private readonly ICustomerService _customerService = customerService;
         private readonly IProjectService _projectService = projectService;
         private readonly IUserService _userService = userService;
+        private readonly IStatusService _statusService = statusService;
         private readonly ProjectFactory _projectFactory = projectFactory;
         private readonly UserFactory _userFactory = userFactory;
 
@@ -35,10 +37,10 @@ namespace Presentation.ConsoleApp.Dialogs
                 Console.WriteLine("7. Update Project");
                 Console.WriteLine("8. Delete Project");
                 Console.WriteLine("9. Register User");
-                Console.WriteLine("10. List Users");
-                Console.WriteLine("11. Update User");
-                Console.WriteLine("12. Delete User");
-                Console.WriteLine("13. Exit");
+                Console.WriteLine("L. List Users");
+                Console.WriteLine("U. Update User");
+                Console.WriteLine("D. Delete User");
+                Console.WriteLine("Escape. Exit");
                 var key = Console.ReadKey(true).Key;
                 switch (key)
                 {
@@ -180,15 +182,32 @@ namespace Presentation.ConsoleApp.Dialogs
                 }
             }
 
-            Console.WriteLine("Enter new project status or leave empty to keep: ");
-            var projectStatus = Console.ReadLine()!;
+            var statusTypes = await _statusService.GetStatusTypesAsync();
             if (
-                string.IsNullOrEmpty(projectStatus)
-                || !int.TryParse(projectStatus, out var statusId)
-                || statusId <= 0
+                !int.TryParse(Console.ReadLine(), out var statusId)
+                || !statusTypes.Any(s => s.Id == statusId)
             )
             {
-                Console.WriteLine("Invalid status ID!");
+                Console.WriteLine("No status types found!");
+                Console.ReadKey();
+                return;
+            }
+
+            Console.WriteLine("Select a project status or leave empty to keep: ");
+            foreach (var status in statusTypes)
+            {
+                Console.WriteLine($"Id: {status.Id}");
+                Console.WriteLine($"Name: {status.StatusName}");
+            }
+
+            Console.WriteLine("Enter status Id: ");
+            var statusInput = Console.ReadLine()!;
+            if (
+                !int.TryParse(statusInput, out var statusIdInput)
+                || !statusTypes.Any(s => s.Id == statusIdInput)
+            )
+            {
+                Console.WriteLine("Invalid status Id!");
                 Console.ReadKey();
                 return;
             }
@@ -280,9 +299,7 @@ namespace Presentation.ConsoleApp.Dialogs
                 EndDate = string.IsNullOrEmpty(projectEndDateInput)
                     ? existingProject.EndDate
                     : DateTime.Parse(projectEndDateInput),
-                StatusId = string.IsNullOrEmpty(projectStatus)
-                    ? existingProject.StatusId
-                    : int.Parse(projectStatus),
+                StatusId = statusIdInput,
                 CustomerId = customerId,
                 UserId = userId,
             };
@@ -329,7 +346,7 @@ namespace Presentation.ConsoleApp.Dialogs
         private async Task CreateProject()
         {
             Console.Clear();
-            Console.WriteLine("Enter Project Name:");
+            Console.WriteLine("Enter project name:");
             var projectName = Console.ReadLine()!;
             if (string.IsNullOrEmpty(projectName.Trim()))
             {
@@ -337,9 +354,9 @@ namespace Presentation.ConsoleApp.Dialogs
                 Console.ReadKey();
                 return;
             }
-            Console.WriteLine("Enter Project Description:");
+            Console.WriteLine("Enter project description:");
             var projectDescription = Console.ReadLine()!;
-            Console.WriteLine("Enter Project Start Date (yyyy-MM-dd):");
+            Console.WriteLine("Enter project start date (yyyy-MM-dd):");
             var projectStartDateInput = Console.ReadLine()!;
             if (!DateValidationHelper.IsValidDate(projectStartDateInput))
             {
@@ -373,19 +390,57 @@ namespace Presentation.ConsoleApp.Dialogs
                     return;
                 }
             }
-            Console.WriteLine("Enter Project Status:");
-            var projectStatus = Console.ReadLine()!;
+            var statusTypes = await _statusService.GetStatusTypesAsync();
             if (
-                string.IsNullOrEmpty(projectStatus)
-                || !int.TryParse(projectStatus, out var statusId)
-                || statusId <= 0
+                !int.TryParse(Console.ReadLine(), out var statusId)
+                || !statusTypes.Any(s => s.Id == statusId)
             )
             {
-                Console.WriteLine("Invalid status ID!");
+                Console.WriteLine("No status types found!");
                 Console.ReadKey();
                 return;
             }
-            Console.WriteLine("Enter Project Customer Id:");
+
+            Console.WriteLine("Select a project status: ");
+            foreach (var status in statusTypes)
+            {
+                Console.WriteLine($"Id: {status.Id}");
+                Console.WriteLine($"Name: {status.StatusName}");
+            }
+
+            Console.WriteLine("Enter status Id: ");
+            var statusInput = Console.ReadLine()!;
+            if (
+                !int.TryParse(statusInput, out var statusIdInput)
+                || !statusTypes.Any(s => s.Id == statusIdInput)
+            )
+            {
+                Console.WriteLine("Invalid status Id!");
+                Console.ReadKey();
+                return;
+            }
+
+            var users = await _userService.GetUsersAsync();
+            if (users == null || !users.Any())
+            {
+                Console.WriteLine("No users found!");
+                Console.ReadKey();
+                return;
+            }
+            foreach (var user in users)
+            {
+                Console.WriteLine($"Id: {user.Id}");
+                Console.WriteLine($"Name: {user.FirstName} {user.LastName}");
+            }
+
+            Console.WriteLine("Enter User Id:");
+            var userId = Console.ReadLine()!;
+            if (!users.Any(u => u.Id.ToString() == userId))
+            {
+                Console.WriteLine("Invalid User Id!");
+                Console.ReadKey();
+                return;
+            }
 
             var customers = await _customerService.GetCustomersAsync();
             if (customers == null || !customers.Any())
@@ -415,8 +470,9 @@ namespace Presentation.ConsoleApp.Dialogs
                 ProjectDescription = projectDescription,
                 StartDate = projectStartDate,
                 EndDate = projectEndDate,
-                StatusId = int.Parse(projectStatus),
+                StatusId = statusIdInput,
                 CustomerId = int.Parse(customerId),
+                UserId = int.Parse(userId),
             };
 
             var newProject = await _projectFactory.CreateAsync(projectRegistrationForm);
@@ -801,6 +857,7 @@ namespace Presentation.ConsoleApp.Dialogs
                 Console.WriteLine($"End Date: {project.EndDate}");
                 Console.WriteLine($"Status: {project.Status}");
                 Console.WriteLine($"Customer: {project.Customer}");
+                Console.WriteLine($"User: {project.User}");
             }
             Console.WriteLine("Enter Project Id:");
             var projectIdInput = Console.ReadLine();
