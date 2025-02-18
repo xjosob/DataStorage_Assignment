@@ -1,15 +1,15 @@
 ﻿using Business.Helpers;
+using Business.Interfaces;
 using Business.Models;
-using Business.Services;
 using Data.Contexts;
 using Data.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace Business.Factories
 {
-    public class ProjectFactory(DataContext context, UserService userService)
+    public class ProjectFactory(DataContext context, IUserService userService)
     {
-        private readonly UserService _userService =
+        private readonly IUserService _userService =
             userService ?? throw new ArgumentNullException(nameof(userService));
         private readonly DataContext _context =
             context ?? throw new ArgumentNullException(nameof(context));

@@ -10,44 +10,90 @@ namespace Business.Services
         private readonly DataContext _context = context;
 
         // Create
-        public async Task<CustomerEntity> CreateCustomer(CustomerEntity customerEntity)
+        public async Task<CustomerEntity> CreateCustomerAsync(CustomerEntity customerEntity)
         {
-            await _context.Customers.AddAsync(customerEntity);
-            await _context.SaveChangesAsync();
-            return customerEntity;
+            try
+            {
+                await _context.Customers.AddAsync(customerEntity);
+                await _context.SaveChangesAsync();
+                return customerEntity;
+            }
+            catch (DbUpdateException ex)
+            {
+                Console.WriteLine($"Database update error: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"An error occurred while creating a customer: {ex.Message}");
+            }
+            return null!;
         }
 
         // Read
         public async Task<IEnumerable<CustomerEntity>> GetCustomersAsync()
         {
-            return await _context.Customers.ToListAsync();
+            try
+            {
+                return await _context.Customers.ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"An error occurred while getting customers: {ex.Message}");
+                return [];
+            }
         }
 
         public async Task<CustomerEntity> GetCustomerByIdAsync(int id)
         {
-            var customerEntity = await _context.Customers.FirstOrDefaultAsync(x => x.Id == id);
-            return customerEntity ?? null!;
+            try
+            {
+                var customerEntity = await _context.Customers.FirstOrDefaultAsync(x => x.Id == id);
+                return customerEntity ?? null!;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"An error occurred while getting a customer: {ex.Message}");
+                return null!;
+            }
         }
 
         // Update
         public async Task<CustomerEntity> UpdateCustomerAsync(CustomerEntity customerEntity)
         {
-            _context.Customers.Update(customerEntity);
-            await _context.SaveChangesAsync();
-            return customerEntity;
+            try
+            {
+                _context.Customers.Update(customerEntity);
+                await _context.SaveChangesAsync();
+                return customerEntity;
+            }
+            catch (DbUpdateException ex)
+            {
+                Console.WriteLine($"Database update error: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"An error occurred while updating a customer: {ex.Message}");
+            }
+            return null!;
         }
 
         // Delete
-        public async Task<bool> DeleteCustomerAsync(int id)
+        public async Task<CustomerEntity> DeleteCustomerAsync(int id)
         {
-            var customerEntity = await _context.Customers.FirstOrDefaultAsync(x => x.Id == id);
-            if (customerEntity == null)
+            try
             {
-                return false;
+                var customerEntity =
+                    await _context.Customers.FirstOrDefaultAsync(x => x.Id == id)
+                    ?? throw new InvalidOperationException("Customer not found.");
+                _context.Customers.Remove(customerEntity);
+                await _context.SaveChangesAsync();
+                return customerEntity;
             }
-            _context.Customers.Remove(customerEntity);
-            await _context.SaveChangesAsync();
-            return true;
+            catch (Exception ex)
+            {
+                Console.WriteLine($"An error occurred while deleting a customer: {ex.Message}");
+                return null!;
+            }
         }
     }
 }

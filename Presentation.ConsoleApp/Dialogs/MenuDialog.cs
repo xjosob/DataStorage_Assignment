@@ -1,4 +1,5 @@
 ﻿using Business.Factories;
+using Business.Helpers;
 using Business.Interfaces;
 using Business.Models;
 using Data.Entities;
@@ -22,63 +23,67 @@ namespace Presentation.ConsoleApp.Dialogs
 
         public async Task MenuOptions()
         {
-            Console.WriteLine("1. Register Customer");
-            Console.WriteLine("2. List Customers");
-            Console.WriteLine("3. Update Customer");
-            Console.WriteLine("4. Delete Customer");
-            Console.WriteLine("5. Create Project");
-            Console.WriteLine("6. List Projects");
-            Console.WriteLine("7. Update Project");
-            Console.WriteLine("8. Delete Project");
-            Console.WriteLine("9. Register User");
-            Console.WriteLine("10. List Users");
-            Console.WriteLine("11. Update User");
-            Console.WriteLine("12. Delete User");
-            Console.WriteLine("13. Exit");
-            var option = Console.ReadLine();
-            switch (option)
+            while (true)
             {
-                case "1":
-                    await RegisterCustomer();
-                    break;
-                case "2":
-                    await ListCustomers();
-                    break;
-                case "3":
-                    await UpdateCustomer();
-                    break;
-                case "4":
-                    await DeleteCustomer();
-                    break;
-                case "5":
-                    await CreateProject();
-                    break;
-                case "6":
-                    await ListProjects();
-                    break;
-                case "7":
-                    await UpdateProject();
-                    break;
-                case "8":
-                    await DeleteProject();
-                    break;
-                case "9":
-                    await RegisterUser();
-                    break;
-                case "10":
-                    await ListUsers();
-                    break;
-                case "11":
-                    await UpdateUser();
-                    break;
-                case "12":
-                    await DeleteUser();
-                    break;
-                case "13":
-                    Environment.Exit(0);
-                    break;
-                default:
-                    break;
+                Console.Clear();
+                Console.WriteLine("1. Register Customer");
+                Console.WriteLine("2. List Customers");
+                Console.WriteLine("3. Update Customer");
+                Console.WriteLine("4. Delete Customer");
+                Console.WriteLine("5. Create Project");
+                Console.WriteLine("6. List Projects");
+                Console.WriteLine("7. Update Project");
+                Console.WriteLine("8. Delete Project");
+                Console.WriteLine("9. Register User");
+                Console.WriteLine("10. List Users");
+                Console.WriteLine("11. Update User");
+                Console.WriteLine("12. Delete User");
+                Console.WriteLine("13. Exit");
+                var key = Console.ReadKey(true).Key;
+                switch (key)
+                {
+                    case ConsoleKey.D1:
+                        await RegisterCustomer();
+                        break;
+                    case ConsoleKey.D2:
+                        await ListCustomers();
+                        break;
+                    case ConsoleKey.D3:
+                        await UpdateCustomer();
+                        break;
+                    case ConsoleKey.D4:
+                        await DeleteCustomer();
+                        break;
+                    case ConsoleKey.D5:
+                        await CreateProject();
+                        break;
+                    case ConsoleKey.D6:
+                        await ListProjects();
+                        break;
+                    case ConsoleKey.D7:
+                        await UpdateProject();
+                        break;
+                    case ConsoleKey.D8:
+                        await DeleteProject();
+                        break;
+                    case ConsoleKey.D9:
+                        await RegisterUser();
+                        break;
+                    case ConsoleKey.L:
+                        await ListUsers();
+                        break;
+                    case ConsoleKey.U:
+                        await UpdateUser();
+                        break;
+                    case ConsoleKey.D:
+                        await DeleteUser();
+                        break;
+                    case ConsoleKey.Escape:
+                        Environment.Exit(0);
+                        break;
+                    default:
+                        break;
+                }
             }
         }
 
@@ -111,7 +116,7 @@ namespace Presentation.ConsoleApp.Dialogs
             }
             else
             {
-                Console.WriteLine("Operation cancelled!");
+                Console.WriteLine("Operation canceled!");
             }
             Console.ReadKey();
         }
@@ -128,19 +133,65 @@ namespace Presentation.ConsoleApp.Dialogs
             Console.WriteLine($"Update project: {existingProject.ProjectName}");
 
             Console.WriteLine("Enter new project name or leave empty to keep: ");
-            var projectName = Console.ReadLine();
+            var projectName = Console.ReadLine()!;
+            if (string.IsNullOrEmpty(projectName.Trim()))
+            {
+                Console.WriteLine("Project name cannot be empty!");
+                Console.ReadKey();
+                return;
+            }
 
             Console.WriteLine("Enter new project description or leave empty to keep: ");
             var customerEmail = Console.ReadLine();
 
-            Console.WriteLine("Enter new project start date or leave empty to keep: ");
-            var projectStartDateInput = Console.ReadLine();
+            Console.WriteLine("Enter new project start date or leave empty to keep(yyyy-MM-dd): ");
+            var projectStartDateInput = Console.ReadLine()!;
+            if (!DateValidationHelper.IsValidDate(projectStartDateInput))
+            {
+                Console.WriteLine("Invalid date format! Please use yyyy-MM-dd.");
+                Console.ReadKey();
+                return;
+            }
+            DateTime projectStartDate = DateTime.Parse(projectStartDateInput);
+            if (!DateValidationHelper.IsFutureDate(projectStartDate))
+            {
+                Console.WriteLine("Start date must be in the future!");
+                Console.ReadKey();
+                return;
+            }
 
-            Console.WriteLine("Enter new project end date or leave empty to keep: ");
-            var customerPhone = Console.ReadLine();
+            Console.WriteLine("Enter new project end date or leave empty to keep(yyyy-MM-dd): ");
+            var projectEndDateInput = Console.ReadLine()!;
+            DateTime? projectEndDate = null;
+            if (!string.IsNullOrEmpty(projectEndDateInput))
+            {
+                if (!DateValidationHelper.IsValidDate(projectEndDateInput))
+                {
+                    Console.WriteLine("Invalid date format! Please use yyyy-MM-dd.");
+                    Console.ReadKey();
+                    return;
+                }
+                projectEndDate = DateTime.Parse(projectEndDateInput);
+                if (!DateValidationHelper.IsEndDateAfterStartDate(projectStartDate, projectEndDate))
+                {
+                    Console.WriteLine("End date must be after start date!");
+                    Console.ReadKey();
+                    return;
+                }
+            }
 
             Console.WriteLine("Enter new project status or leave empty to keep: ");
-            var projectStatus = Console.ReadLine();
+            var projectStatus = Console.ReadLine()!;
+            if (
+                string.IsNullOrEmpty(projectStatus)
+                || !int.TryParse(projectStatus, out var statusId)
+                || statusId <= 0
+            )
+            {
+                Console.WriteLine("Invalid status ID!");
+                Console.ReadKey();
+                return;
+            }
 
             var customers = await _customerService.GetCustomersAsync();
             if (customers == null || !customers.Any())
@@ -226,9 +277,9 @@ namespace Presentation.ConsoleApp.Dialogs
                 StartDate = string.IsNullOrEmpty(projectStartDateInput)
                     ? existingProject.StartDate
                     : DateTime.Parse(projectStartDateInput),
-                EndDate = string.IsNullOrEmpty(customerPhone)
+                EndDate = string.IsNullOrEmpty(projectEndDateInput)
                     ? existingProject.EndDate
-                    : DateTime.Parse(customerPhone),
+                    : DateTime.Parse(projectEndDateInput),
                 StatusId = string.IsNullOrEmpty(projectStatus)
                     ? existingProject.StatusId
                     : int.Parse(projectStatus),
@@ -250,25 +301,29 @@ namespace Presentation.ConsoleApp.Dialogs
 
         private async Task ListProjects()
         {
-            Console.Clear();
-            var projects = await _projectService.GetProjectsAsync();
-            if (projects.Any() && projects != null)
+            while (true)
             {
-                foreach (var project in projects)
+                Console.Clear();
+                var projects = await _projectService.GetProjectsAsync();
+                if (projects.Any() && projects != null)
                 {
-                    Console.WriteLine($"Name: {project.ProjectName}");
-                    Console.WriteLine($"Description: {project.ProjectDescription}");
-                    Console.WriteLine($"Start date: {project.StartDate}");
-                    Console.WriteLine($"End date: {project.EndDate}");
-                    Console.WriteLine($"Status: {project.Status}");
-                    Console.WriteLine($"Customer: {project.Customer}");
+                    foreach (var project in projects)
+                    {
+                        Console.WriteLine($"Name: {project.ProjectName}");
+                        Console.WriteLine($"Description: {project.ProjectDescription}");
+                        Console.WriteLine($"Start date: {project.StartDate}");
+                        Console.WriteLine($"End date: {project.EndDate}");
+                        Console.WriteLine($"Status: {project.Status}");
+                        Console.WriteLine($"Customer: {project.Customer}");
+                    }
                 }
+                else
+                {
+                    Console.WriteLine("No projects found!");
+                }
+                Console.ReadKey();
+                return;
             }
-            else
-            {
-                Console.WriteLine("No projects found!");
-            }
-            Console.ReadKey();
         }
 
         private async Task CreateProject()
@@ -276,14 +331,60 @@ namespace Presentation.ConsoleApp.Dialogs
             Console.Clear();
             Console.WriteLine("Enter Project Name:");
             var projectName = Console.ReadLine()!;
+            if (string.IsNullOrEmpty(projectName.Trim()))
+            {
+                Console.WriteLine("Project name cannot be empty!");
+                Console.ReadKey();
+                return;
+            }
             Console.WriteLine("Enter Project Description:");
             var projectDescription = Console.ReadLine()!;
             Console.WriteLine("Enter Project Start Date (yyyy-MM-dd):");
             var projectStartDateInput = Console.ReadLine()!;
+            if (!DateValidationHelper.IsValidDate(projectStartDateInput))
+            {
+                Console.WriteLine("Invalid date format! Please use yyyy-MM-dd.");
+                Console.ReadKey();
+                return;
+            }
+            DateTime projectStartDate = DateTime.Parse(projectStartDateInput);
+            if (!DateValidationHelper.IsFutureDate(projectStartDate))
+            {
+                Console.WriteLine("Start date must be in the future!");
+                Console.ReadKey();
+                return;
+            }
             Console.WriteLine("Enter Project End Date (yyyy-MM-dd):");
             var projectEndDateInput = Console.ReadLine()!;
+            DateTime? projectEndDate = null;
+            if (!string.IsNullOrEmpty(projectEndDateInput))
+            {
+                if (!DateValidationHelper.IsValidDate(projectEndDateInput))
+                {
+                    Console.WriteLine("Invalid date format! Please use yyyy-MM-dd.");
+                    Console.ReadKey();
+                    return;
+                }
+                projectEndDate = DateTime.Parse(projectEndDateInput);
+                if (!DateValidationHelper.IsEndDateAfterStartDate(projectStartDate, projectEndDate))
+                {
+                    Console.WriteLine("End date must be after start date!");
+                    Console.ReadKey();
+                    return;
+                }
+            }
             Console.WriteLine("Enter Project Status:");
             var projectStatus = Console.ReadLine()!;
+            if (
+                string.IsNullOrEmpty(projectStatus)
+                || !int.TryParse(projectStatus, out var statusId)
+                || statusId <= 0
+            )
+            {
+                Console.WriteLine("Invalid status ID!");
+                Console.ReadKey();
+                return;
+            }
             Console.WriteLine("Enter Project Customer Id:");
 
             var customers = await _customerService.GetCustomersAsync();
@@ -307,11 +408,6 @@ namespace Presentation.ConsoleApp.Dialogs
                 Console.ReadKey();
                 return;
             }
-
-            DateTime projectStartDate = DateTime.Parse(projectStartDateInput);
-            DateTime? projectEndDate = string.IsNullOrEmpty(projectEndDateInput)
-                ? (DateTime?)null
-                : DateTime.Parse(projectEndDateInput);
 
             var projectRegistrationForm = new ProjectCreationForm
             {
@@ -386,14 +482,32 @@ namespace Presentation.ConsoleApp.Dialogs
 
             Console.WriteLine($"Update customer: {existingCustomer.CustomerName}");
 
-            Console.WriteLine("Enter new customer Name or leave empty to keep: ");
+            Console.WriteLine("Enter new customer name or leave empty to keep: ");
             var customerName = Console.ReadLine();
 
-            Console.WriteLine("Enter new customer Email or leave empty to keep: ");
+            Console.WriteLine("Enter new customer email or leave empty to keep: ");
             var customerEmail = Console.ReadLine();
+            if (
+                string.IsNullOrEmpty(customerEmail)
+                || !EmailValidationHelper.IsValidEmail(customerEmail)
+            )
+            {
+                Console.WriteLine("Invalid Email!");
+                Console.ReadKey();
+                return;
+            }
 
-            Console.WriteLine("Enter new customer Phone or leave empty to keep: ");
+            Console.WriteLine("Enter new customer phone number or leave empty to keep: ");
             var customerPhone = Console.ReadLine();
+            if (
+                string.IsNullOrEmpty(customerPhone)
+                || !PhoneValidationHelper.IsValidPhoneNumber(customerPhone)
+            )
+            {
+                Console.WriteLine("Invalid phone number!");
+                Console.ReadKey();
+                return;
+            }
 
             var updatedCustomer = new CustomerEntity
             {
@@ -448,8 +562,20 @@ namespace Presentation.ConsoleApp.Dialogs
             var customerName = Console.ReadLine()!;
             Console.WriteLine("Enter Customer Email:");
             var customerEmail = Console.ReadLine()!;
+            if (!EmailValidationHelper.IsValidEmail(customerEmail))
+            {
+                Console.WriteLine("Invalid Email!");
+                Console.ReadKey();
+                return;
+            }
             Console.WriteLine("Enter Customer Phone:");
             var customerPhone = Console.ReadLine()!;
+            if (!PhoneValidationHelper.IsValidPhoneNumber(customerPhone))
+            {
+                Console.WriteLine("Invalid phone number!");
+                Console.ReadKey();
+                return;
+            }
 
             var customerRegistrationForm = new CustomerRegistrationForm
             {
@@ -460,7 +586,7 @@ namespace Presentation.ConsoleApp.Dialogs
 
             var newCustomer = CustomerFactory.Create(customerRegistrationForm);
 
-            var result = await _customerService.CreateCustomer(newCustomer);
+            var result = await _customerService.CreateCustomerAsync(newCustomer);
 
             if (result != null)
             {
