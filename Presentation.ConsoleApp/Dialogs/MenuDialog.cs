@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using Business.Factories;
+﻿using Business.Factories;
 using Business.Helpers;
 using Business.Interfaces;
 using Business.Models;
@@ -26,6 +25,7 @@ namespace Presentation.ConsoleApp.Dialogs
         private readonly ProjectFactory _projectFactory = projectFactory;
         private readonly UserFactory _userFactory = userFactory;
 
+        #region // Menu options
         public async Task MenuOptions()
         {
             while (true)
@@ -40,9 +40,13 @@ namespace Presentation.ConsoleApp.Dialogs
                 Console.WriteLine("7. Update Project");
                 Console.WriteLine("8. Delete Project");
                 Console.WriteLine("9. Register User");
-                Console.WriteLine("L. List Users");
-                Console.WriteLine("U. Update User");
-                Console.WriteLine("D. Delete User");
+                Console.WriteLine("F1. List Users");
+                Console.WriteLine("F2. Update User");
+                Console.WriteLine("F3. Delete User");
+                Console.WriteLine("F4. Register Product");
+                Console.WriteLine("F5. List Products");
+                Console.WriteLine("F6. Update Product");
+                Console.WriteLine("F7. Delete Product");
                 Console.WriteLine("Esc. Exit");
                 var key = Console.ReadKey(true).Key;
                 switch (key)
@@ -74,14 +78,26 @@ namespace Presentation.ConsoleApp.Dialogs
                     case ConsoleKey.D9:
                         await RegisterUser();
                         break;
-                    case ConsoleKey.L:
+                    case ConsoleKey.F1:
                         await ListUsers();
                         break;
-                    case ConsoleKey.U:
+                    case ConsoleKey.F2:
                         await UpdateUser();
                         break;
-                    case ConsoleKey.D:
+                    case ConsoleKey.F3:
                         await DeleteUser();
+                        break;
+                    case ConsoleKey.F4:
+                        await RegisterProduct();
+                        break;
+                    case ConsoleKey.F5:
+                        await ListProducts();
+                        break;
+                    case ConsoleKey.F6:
+                        await UpdateProduct();
+                        break;
+                    case ConsoleKey.F7:
+                        await DeleteProduct();
                         break;
                     case ConsoleKey.Escape:
                         Environment.Exit(0);
@@ -91,41 +107,230 @@ namespace Presentation.ConsoleApp.Dialogs
                 }
             }
         }
+        #endregion
 
         #region // CRUD operations for projects
-        private async Task DeleteProject()
+        // Create
+        private async Task CreateProject()
         {
             Console.Clear();
-
-            var existingProject = await SelectProject();
-            if (existingProject == null)
+            string projectName;
+            Console.WriteLine("Enter project name:");
+            do
             {
+                projectName = Console.ReadLine()!;
+                if (string.IsNullOrEmpty(projectName.Trim()))
+                {
+                    Console.WriteLine("Project name cannot be empty! Please try again: ");
+                }
+            } while (string.IsNullOrEmpty(projectName.Trim()));
+
+            Console.WriteLine("Enter project description(optional):");
+            var projectDescription = Console.ReadLine()!;
+
+            Console.WriteLine("Enter project start date (yyyy-MM-dd):");
+            DateTime projectStartDate = DateTime.MinValue;
+            while (true)
+            {
+                var projectStartDateInput = Console.ReadLine()!;
+                if (!DateValidationHelper.IsValidDate(projectStartDateInput))
+                {
+                    Console.WriteLine("Invalid date format! Please use yyyy-MM-dd: ");
+                    continue;
+                }
+                projectStartDate = DateTime.Parse(projectStartDateInput);
+                if (!DateValidationHelper.IsFutureOrTodayDate(projectStartDate))
+                {
+                    Console.WriteLine(
+                        "Start date must be today or in the future! Please try again: "
+                    );
+                    continue;
+                }
+                break;
+            }
+
+            Console.WriteLine("(optional)Enter project end date (yyyy-MM-dd): ");
+            DateTime? projectEndDate = null;
+            while (true)
+            {
+                var projectEndDateInput = Console.ReadLine()!;
+                if (string.IsNullOrEmpty(projectEndDateInput))
+                {
+                    break;
+                }
+                if (!DateValidationHelper.IsValidDate(projectEndDateInput))
+                {
+                    Console.WriteLine("Invalid date format! Please use yyyy-MM-dd: ");
+                    continue;
+                }
+                projectEndDate = DateTime.Parse(projectEndDateInput);
+                if (!DateValidationHelper.IsEndDateAfterStartDate(projectStartDate, projectEndDate))
+                {
+                    Console.WriteLine("End date must be after start date!");
+                    continue;
+                }
+                break;
+            }
+
+            var statusTypes = await _statusService.GetStatusTypesAsync();
+
+            if (statusTypes == null || !statusTypes.Any())
+            {
+                Console.WriteLine("No status types found!");
+                Console.ReadKey();
                 return;
             }
 
-            Console.WriteLine("Are you sure you want to delete this project? (Y/N)");
-            var confirmation = Console.ReadLine();
+            int statusIdInput;
+            Console.WriteLine("Select a project status: ");
 
-            if (confirmation?.ToLower() == "y")
+            foreach (var status in statusTypes)
             {
-                var deletedProject = await _projectService.DeleteProjectAsync(existingProject.Id);
-                if (deletedProject != null)
+                Console.WriteLine($"Id: {status.Id}");
+                Console.WriteLine($"Status: {status.StatusName}");
+            }
+
+            Console.WriteLine("Enter status Id: ");
+            while (true)
+            {
+                var statusInput = Console.ReadLine()!;
+                if (
+                    int.TryParse(statusInput, out statusIdInput)
+                    && statusTypes.Any(s => s.Id == statusIdInput)
+                    && statusIdInput >= 1
+                    && statusIdInput <= 3
+                )
                 {
-                    Console.WriteLine("Project deleted successfully!");
+                    break;
                 }
-                else
+                Console.WriteLine("Invalid status Id!");
+            }
+
+            var products = await _productService.GetProductsAsync();
+            if (products == null || !products.Any())
+            {
+                Console.WriteLine("No products found! Press any key to return to main menu");
+                Console.ReadKey();
+                return;
+            }
+
+            Console.WriteLine("Select a product/service: ");
+            int productId;
+            foreach (var product in products)
+            {
+                Console.WriteLine($"Id: {product.Id}");
+                Console.WriteLine($"Name: {product.ProductName}");
+            }
+
+            Console.WriteLine("Enter product Id: ");
+            while (true)
+            {
+                var productIdInput = Console.ReadLine()!;
+                if (
+                    !int.TryParse(productIdInput, out productId)
+                    && products.Any(p => p.Id == productId)
+                )
                 {
-                    Console.WriteLine("Failed to delete project!");
-                    Console.ReadKey();
+                    break;
+                }
+                Console.WriteLine("Invalid product Id!");
+            }
+
+            var users = await _userService.GetUsersAsync();
+            if (users == null || !users.Any())
+            {
+                Console.WriteLine("No users found!");
+                Console.ReadKey();
+                return;
+            }
+            foreach (var user in users)
+            {
+                Console.WriteLine($"Id: {user.Id}");
+                Console.WriteLine($"Name: {user.FirstName} {user.LastName}");
+            }
+
+            Console.WriteLine("Enter User Id:");
+            var userId = Console.ReadLine()!;
+            if (!users.Any(u => u.Id.ToString() == userId))
+            {
+                Console.WriteLine("Invalid User Id!");
+                Console.ReadKey();
+                return;
+            }
+
+            var customers = await _customerService.GetCustomersAsync();
+            if (customers == null || !customers.Any())
+            {
+                Console.WriteLine("No customers found!");
+                Console.ReadKey();
+                return;
+            }
+            foreach (var customer in customers)
+            {
+                Console.WriteLine($"Id: {customer.Id}");
+                Console.WriteLine($"Name: {customer.CustomerName}");
+            }
+
+            Console.WriteLine("Enter Customer Id:");
+            var customerId = Console.ReadLine()!;
+            if (!customers.Any(c => c.Id.ToString() == customerId))
+            {
+                Console.WriteLine("Invalid Customer Id!");
+                Console.ReadKey();
+                return;
+            }
+
+            var projectRegistrationForm = new ProjectCreationForm
+            {
+                ProjectName = projectName,
+                ProjectDescription = projectDescription,
+                StartDate = projectStartDate,
+                EndDate = projectEndDate,
+                StatusId = statusIdInput,
+                CustomerId = int.Parse(customerId),
+                UserId = int.Parse(userId),
+            };
+
+            var newProject = await _projectFactory.CreateAsync(projectRegistrationForm);
+
+            var result = await _projectService.CreateProjectAsync(newProject);
+
+            if (result != null)
+            {
+                Console.WriteLine("Project created successfully!");
+            }
+            else
+            {
+                Console.WriteLine("Failed to create project!");
+            }
+        }
+
+        // Read
+        private async Task ListProjects()
+        {
+            Console.Clear();
+            var projects = await _projectService.GetProjectsAsync();
+            if (projects.Any() && projects != null)
+            {
+                foreach (var project in projects)
+                {
+                    Console.WriteLine($"Name: {project.ProjectName}");
+                    Console.WriteLine($"Description: {project.ProjectDescription}");
+                    Console.WriteLine($"Start date: {project.StartDate}");
+                    Console.WriteLine($"End date: {project.EndDate}");
+                    Console.WriteLine($"Status: {project.Status}");
+                    Console.WriteLine($"Customer: {project.Customer}");
                 }
             }
             else
             {
-                Console.WriteLine("Operation canceled!");
+                Console.WriteLine("No projects found!");
             }
             Console.ReadKey();
+            return;
         }
 
+        // Update
         private async Task UpdateProject()
         {
             Console.Clear();
@@ -348,315 +553,106 @@ namespace Presentation.ConsoleApp.Dialogs
             Console.ReadKey();
         }
 
-        private async Task ListProjects()
+        // Delete
+        private async Task DeleteProject()
         {
             Console.Clear();
-            var projects = await _projectService.GetProjectsAsync();
-            if (projects.Any() && projects != null)
+
+            var existingProject = await SelectProject();
+            if (existingProject == null)
             {
-                foreach (var project in projects)
+                return;
+            }
+
+            Console.WriteLine("Are you sure you want to delete this project? (Y/N)");
+            var confirmation = Console.ReadLine();
+
+            if (confirmation?.ToLower() == "y")
+            {
+                var deletedProject = await _projectService.DeleteProjectAsync(existingProject.Id);
+                if (deletedProject != null)
                 {
-                    Console.WriteLine($"Name: {project.ProjectName}");
-                    Console.WriteLine($"Description: {project.ProjectDescription}");
-                    Console.WriteLine($"Start date: {project.StartDate}");
-                    Console.WriteLine($"End date: {project.EndDate}");
-                    Console.WriteLine($"Status: {project.Status}");
-                    Console.WriteLine($"Customer: {project.Customer}");
+                    Console.WriteLine("Project deleted successfully!");
+                }
+                else
+                {
+                    Console.WriteLine("Failed to delete project!");
+                    Console.ReadKey();
                 }
             }
             else
             {
-                Console.WriteLine("No projects found!");
+                Console.WriteLine("Operation canceled!");
             }
             Console.ReadKey();
-            return;
-        }
-
-        private async Task CreateProject()
-        {
-            Console.Clear();
-            string projectName;
-            Console.WriteLine("Enter project name:");
-            do
-            {
-                projectName = Console.ReadLine()!;
-                if (string.IsNullOrEmpty(projectName.Trim()))
-                {
-                    Console.WriteLine("Project name cannot be empty! Please try again: ");
-                }
-            } while (string.IsNullOrEmpty(projectName.Trim()));
-
-            Console.WriteLine("Enter project description(optional):");
-            var projectDescription = Console.ReadLine()!;
-
-            Console.WriteLine("Enter project start date (yyyy-MM-dd):");
-            DateTime projectStartDate = DateTime.MinValue;
-            do
-            {
-                var projectStartDateInput = Console.ReadLine()!;
-                if (!DateValidationHelper.IsValidDate(projectStartDateInput))
-                {
-                    Console.WriteLine("Invalid date format! Please use yyyy-MM-dd: ");
-                    continue;
-                }
-                projectStartDate = DateTime.Parse(projectStartDateInput);
-                if (!DateValidationHelper.IsFutureOrTodayDate(projectStartDate))
-                {
-                    Console.WriteLine(
-                        "Start date must be today or in the future! Please try again: "
-                    );
-                }
-            } while (!DateValidationHelper.IsValidDate(projectStartDate.ToString("yyy-MM-dd")));
-
-            Console.WriteLine("(optional)Enter project end date (yyyy-MM-dd): ");
-            DateTime? projectEndDate = null;
-            while (true)
-            {
-                var projectEndDateInput = Console.ReadLine()!;
-                if (string.IsNullOrEmpty(projectEndDateInput))
-                {
-                    break;
-                }
-                if (!DateValidationHelper.IsValidDate(projectEndDateInput))
-                {
-                    Console.WriteLine("Invalid date format! Please use yyyy-MM-dd: ");
-                    continue;
-                }
-                projectEndDate = DateTime.Parse(projectEndDateInput);
-                if (!DateValidationHelper.IsEndDateAfterStartDate(projectStartDate, projectEndDate))
-                {
-                    Console.WriteLine("End date must be after start date!");
-                    continue;
-                }
-                break;
-            }
-
-            var statusTypes = await _statusService.GetStatusTypesAsync();
-
-            if (statusTypes == null || !statusTypes.Any())
-            {
-                Console.WriteLine("No status types found!");
-                Console.ReadKey();
-                return;
-            }
-
-            Console.WriteLine("Select a project status: ");
-            foreach (var status in statusTypes)
-            {
-                Console.WriteLine($"Id: {status.Id}");
-                Console.WriteLine($"Name: {status.StatusName}");
-            }
-
-            Console.WriteLine("Enter status Id: ");
-            var statusInput = Console.ReadLine()!;
-            if (
-                !int.TryParse(statusInput, out var statusIdInput)
-                || !statusTypes.Any(s => s.Id == statusIdInput)
-            )
-            {
-                Console.WriteLine("Invalid status Id!");
-                Console.ReadKey();
-                return;
-            }
-
-            var products = await _productService.GetProductsAsync();
-            if (products == null || !products.Any())
-            {
-                Console.WriteLine("No products found!");
-                Console.ReadKey();
-                return;
-            }
-
-            Console.WriteLine("Select a product: ");
-            foreach (var product in products)
-            {
-                Console.WriteLine($"Id: {product.Id}");
-                Console.WriteLine($"Name: {product.ProductName}");
-            }
-
-            Console.WriteLine("Enter product Id: ");
-            var productIdInput = Console.ReadLine()!;
-            if (
-                !int.TryParse(productIdInput, out var productId)
-                || !products.Any(p => p.Id == productId)
-            )
-            {
-                Console.WriteLine("Invalid product Id!");
-                Console.ReadKey();
-                return;
-            }
-
-            var users = await _userService.GetUsersAsync();
-            if (users == null || !users.Any())
-            {
-                Console.WriteLine("No users found!");
-                Console.ReadKey();
-                return;
-            }
-            foreach (var user in users)
-            {
-                Console.WriteLine($"Id: {user.Id}");
-                Console.WriteLine($"Name: {user.FirstName} {user.LastName}");
-            }
-
-            Console.WriteLine("Enter User Id:");
-            var userId = Console.ReadLine()!;
-            if (!users.Any(u => u.Id.ToString() == userId))
-            {
-                Console.WriteLine("Invalid User Id!");
-                Console.ReadKey();
-                return;
-            }
-
-            var customers = await _customerService.GetCustomersAsync();
-            if (customers == null || !customers.Any())
-            {
-                Console.WriteLine("No customers found!");
-                Console.ReadKey();
-                return;
-            }
-            foreach (var customer in customers)
-            {
-                Console.WriteLine($"Id: {customer.Id}");
-                Console.WriteLine($"Name: {customer.CustomerName}");
-            }
-
-            Console.WriteLine("Enter Customer Id:");
-            var customerId = Console.ReadLine()!;
-            if (!customers.Any(c => c.Id.ToString() == customerId))
-            {
-                Console.WriteLine("Invalid Customer Id!");
-                Console.ReadKey();
-                return;
-            }
-
-            var projectRegistrationForm = new ProjectCreationForm
-            {
-                ProjectName = projectName,
-                ProjectDescription = projectDescription,
-                StartDate = projectStartDate,
-                EndDate = projectEndDate,
-                StatusId = statusIdInput,
-                CustomerId = int.Parse(customerId),
-                UserId = int.Parse(userId),
-            };
-
-            var newProject = await _projectFactory.CreateAsync(projectRegistrationForm);
-
-            var result = await _projectService.CreateProjectAsync(newProject);
-
-            if (result != null)
-            {
-                Console.WriteLine("Project created successfully!");
-            }
-            else
-            {
-                Console.WriteLine("Failed to create project!");
-            }
         }
 
         #endregion
 
         #region // CRUD operations for customers
-        private async Task DeleteCustomer()
+        // Create
+        private async Task RegisterCustomer()
         {
             Console.Clear();
-
-            var existingCustomer = await SelectCustomer();
-            if (existingCustomer == null)
+            Console.WriteLine("Enter Customer Name:");
+            string customerName;
+            while (true)
             {
-                return;
-            }
-
-            Console.WriteLine("Are you sure you want to delete this customer? (Y/N)");
-            var confirmation = Console.ReadLine();
-
-            if (confirmation?.ToLower() == "y")
-            {
-                var deletedCustomer = await _customerService.DeleteCustomerAsync(
-                    existingCustomer.Id
-                );
-                if (deletedCustomer != null)
+                customerName = Console.ReadLine()!;
+                if (string.IsNullOrWhiteSpace(customerName))
                 {
-                    Console.WriteLine("Customer deleted successfully!");
+                    Console.WriteLine("Customer name cannot be empty! Please try again:");
+                    break;
                 }
-                else
+
+                Console.WriteLine("Enter Customer Email:");
+                string customerEmail;
+                while (true)
                 {
-                    Console.WriteLine("Failed to delete customer!");
+                    customerEmail = Console.ReadLine()!;
+                    if (!EmailValidationHelper.IsValidEmail(customerEmail))
+                    {
+                        Console.WriteLine("Invalid Email! Please try again: ");
+                        break;
+                    }
+
+                    Console.WriteLine("Enter Customer Phone:");
+                    string customerPhone;
+                    while (true)
+                    {
+                        customerPhone = Console.ReadLine()!;
+                        if (!PhoneValidationHelper.IsValidPhoneNumber(customerPhone))
+                        {
+                            Console.WriteLine("Invalid phone number! Please try again: ");
+                            break;
+                        }
+
+                        var customerRegistrationForm = new CustomerRegistrationForm
+                        {
+                            CustomerName = customerName,
+                            CustomerEmail = customerEmail,
+                            CustomerPhone = customerPhone,
+                        };
+
+                        var newCustomer = CustomerFactory.Create(customerRegistrationForm);
+
+                        var result = await _customerService.CreateCustomerAsync(newCustomer);
+
+                        if (result != null)
+                        {
+                            Console.WriteLine("Customer registered successfully!");
+                        }
+                        else
+                        {
+                            Console.WriteLine("Failed to register customer!");
+                        }
+                        Console.ReadKey();
+                    }
                 }
-                Console.ReadKey();
             }
-            else
-            {
-                Console.WriteLine("Operation cancelled!");
-            }
-            Console.ReadKey();
         }
 
-        private async Task UpdateCustomer()
-        {
-            Console.Clear();
-            var existingCustomer = await SelectCustomer();
-            if (existingCustomer == null)
-            {
-                return;
-            }
-
-            Console.WriteLine($"Update customer: {existingCustomer.CustomerName}");
-
-            Console.WriteLine("Enter new customer name or leave empty to keep: ");
-            var customerName = Console.ReadLine();
-
-            Console.WriteLine("Enter new customer email or leave empty to keep: ");
-            var customerEmail = Console.ReadLine();
-            if (
-                string.IsNullOrEmpty(customerEmail)
-                || !EmailValidationHelper.IsValidEmail(customerEmail)
-            )
-            {
-                Console.WriteLine("Invalid Email!");
-                Console.ReadKey();
-                return;
-            }
-
-            Console.WriteLine("Enter new customer phone number or leave empty to keep: ");
-            var customerPhone = Console.ReadLine();
-            if (
-                string.IsNullOrEmpty(customerPhone)
-                || !PhoneValidationHelper.IsValidPhoneNumber(customerPhone)
-            )
-            {
-                Console.WriteLine("Invalid phone number!");
-                Console.ReadKey();
-                return;
-            }
-
-            var updatedCustomer = new CustomerEntity
-            {
-                Id = existingCustomer.Id,
-                CustomerName = string.IsNullOrEmpty(customerName)
-                    ? existingCustomer.CustomerName
-                    : customerName,
-                CustomerEmail = string.IsNullOrEmpty(customerEmail)
-                    ? existingCustomer.CustomerEmail
-                    : customerEmail,
-                CustomerPhone = string.IsNullOrEmpty(customerPhone)
-                    ? existingCustomer.CustomerPhone
-                    : customerPhone,
-            };
-
-            var result = await _customerService.UpdateCustomerAsync(updatedCustomer);
-            if (result != null)
-            {
-                Console.WriteLine("Customer updated successfully!");
-            }
-            else
-            {
-                Console.WriteLine("Failed to update customer!");
-            }
-            Console.ReadKey();
-        }
-
+        // Read
         private async Task ListCustomers()
         {
             Console.Clear();
@@ -677,132 +673,197 @@ namespace Presentation.ConsoleApp.Dialogs
             Console.ReadKey();
         }
 
-        private async Task RegisterCustomer()
+        // Update
+        private async Task UpdateCustomer()
         {
             Console.Clear();
-            Console.WriteLine("Enter Customer Name:");
-            var customerName = Console.ReadLine()!;
-            Console.WriteLine("Enter Customer Email:");
-            var customerEmail = Console.ReadLine()!;
-            if (!EmailValidationHelper.IsValidEmail(customerEmail))
+            var existingCustomer = await SelectCustomer();
+            if (existingCustomer == null)
             {
-                Console.WriteLine("Invalid Email!");
-                Console.ReadKey();
-                return;
-            }
-            Console.WriteLine("Enter Customer Phone:");
-            var customerPhone = Console.ReadLine()!;
-            if (!PhoneValidationHelper.IsValidPhoneNumber(customerPhone))
-            {
-                Console.WriteLine("Invalid phone number!");
-                Console.ReadKey();
                 return;
             }
 
-            var customerRegistrationForm = new CustomerRegistrationForm
+            Console.WriteLine($"Update customer: {existingCustomer.CustomerName}");
+
+            Console.WriteLine("Enter new customer name or leave empty to keep: ");
+            while (true)
             {
-                CustomerName = customerName,
-                CustomerEmail = customerEmail,
-                CustomerPhone = customerPhone,
-            };
+                var customerName = Console.ReadLine();
 
-            var newCustomer = CustomerFactory.Create(customerRegistrationForm);
+                Console.WriteLine("Enter new customer email or leave empty to keep: ");
+                var customerEmail = Console.ReadLine();
+                if (
+                    string.IsNullOrEmpty(customerEmail)
+                    || !EmailValidationHelper.IsValidEmail(customerEmail)
+                )
+                {
+                    Console.WriteLine("Invalid Email!");
+                    Console.ReadKey();
+                    break;
+                }
 
-            var result = await _customerService.CreateCustomerAsync(newCustomer);
+                Console.WriteLine("Enter new customer phone number or leave empty to keep: ");
+                var customerPhone = Console.ReadLine();
+                if (
+                    string.IsNullOrEmpty(customerPhone)
+                    || !PhoneValidationHelper.IsValidPhoneNumber(customerPhone)
+                )
+                {
+                    Console.WriteLine("Invalid phone number!");
+                    Console.ReadKey();
+                    break;
+                }
 
-            if (result != null)
-            {
-                Console.WriteLine("Customer registered successfully!");
+                var updatedCustomer = new CustomerEntity
+                {
+                    Id = existingCustomer.Id,
+                    CustomerName = string.IsNullOrEmpty(customerName)
+                        ? existingCustomer.CustomerName
+                        : customerName,
+                    CustomerEmail = string.IsNullOrEmpty(customerEmail)
+                        ? existingCustomer.CustomerEmail
+                        : customerEmail,
+                    CustomerPhone = string.IsNullOrEmpty(customerPhone)
+                        ? existingCustomer.CustomerPhone
+                        : customerPhone,
+                };
+
+                var result = await _customerService.UpdateCustomerAsync(updatedCustomer);
+                if (result != null)
+                {
+                    Console.WriteLine("Customer updated successfully!");
+                }
+                else
+                {
+                    Console.WriteLine("Failed to update customer!");
+                }
+                Console.ReadKey();
             }
-            else
+        }
+
+        // Delete
+        private async Task DeleteCustomer()
+        {
+            Console.Clear();
+
+            var existingCustomer = await SelectCustomer();
+            if (existingCustomer == null)
             {
-                Console.WriteLine("Failed to register customer!");
+                return;
+            }
+
+            Console.WriteLine("Are you sure you want to delete this customer? (Y/N)");
+
+            while (true)
+            {
+                var confirmation = Console.ReadLine();
+
+                if (confirmation?.ToLower() == "y")
+                {
+                    var deletedCustomer = await _customerService.DeleteCustomerAsync(
+                        existingCustomer.Id
+                    );
+                    if (deletedCustomer != null)
+                    {
+                        Console.WriteLine("Customer deleted successfully!");
+                    }
+                    else
+                    {
+                        Console.WriteLine("Failed to delete customer!");
+                    }
+                    Console.ReadKey();
+                    break;
+                }
+                else
+                {
+                    Console.WriteLine("Operation cancelled!");
+                }
+                Console.ReadKey();
             }
         }
 
         #endregion
 
         #region // CRUD operations for users
-
-        private async Task DeleteUser()
+        // Create
+        private async Task RegisterUser()
         {
             Console.Clear();
-
-            var existingUser = await SelectUser();
-            if (existingUser == null)
+            string userFirstName;
+            Console.WriteLine("Enter first name:");
+            while (true)
             {
-                return;
+                userFirstName = Console.ReadLine()!;
+                if (string.IsNullOrWhiteSpace(userFirstName))
+                {
+                    Console.WriteLine("First name cannot be empty! Please try again: ");
+                    break;
+                }
             }
 
-            Console.WriteLine("Are you sure you want to delete this user? (Y/N)");
-            var confirmation = Console.ReadLine();
-
-            if (confirmation?.ToLower() == "y")
+            string userLastName;
+            Console.WriteLine("Enter last name:");
+            while (true)
             {
-                var deletedUser = await _userService.DeleteUserAsync(existingUser.Id);
-                if (deletedUser != null)
+                userLastName = Console.ReadLine()!;
+                if (string.IsNullOrWhiteSpace(userLastName))
                 {
-                    Console.WriteLine("User deleted successfully!");
+                    Console.WriteLine("Last name cannot be empty! Please try again: ");
+                    break;
+                }
+            }
+
+            string userEmail;
+            Console.WriteLine("Enter email:");
+            while (true)
+            {
+                userEmail = Console.ReadLine()!;
+                if (string.IsNullOrWhiteSpace(userEmail))
+                {
+                    Console.WriteLine("Email cannot be empty! Please try again: ");
+                    break;
+                }
+
+                string userPhone;
+                Console.WriteLine("Enter phone number:");
+                while (true)
+                {
+                    userPhone = Console.ReadLine()!;
+                    if (
+                        string.IsNullOrWhiteSpace(userPhone)
+                        && !PhoneValidationHelper.IsValidPhoneNumber(userPhone)
+                    )
+                    {
+                        Console.WriteLine("Invalid phone number format. Please try again: ");
+                        break;
+                    }
+                }
+
+                var userRegistrationForm = new UserRegistrationForm
+                {
+                    FirstName = userFirstName,
+                    LastName = userLastName,
+                    Email = userEmail,
+                    PhoneNumber = userPhone,
+                };
+
+                var newUser = await _userFactory.CreateAsync(userRegistrationForm);
+
+                var result = await _userService.CreateUserAsync(newUser);
+
+                if (result != null)
+                {
+                    Console.WriteLine("User registered successfully!");
                 }
                 else
                 {
-                    Console.WriteLine("Failed to delete user!");
+                    Console.WriteLine("Failed to register user!");
                 }
                 Console.ReadKey();
             }
-            else
-            {
-                Console.WriteLine("Operation cancelled!");
-            }
         }
 
-        private async Task UpdateUser()
-        {
-            Console.Clear();
-            var existingUser = await SelectUser();
-            if (existingUser == null)
-            {
-                return;
-            }
-
-            Console.WriteLine($"Update user: {existingUser.FirstName} {existingUser.LastName}");
-
-            Console.WriteLine("Enter new user first name or leave empty to keep: ");
-            var userFirstName = Console.ReadLine();
-            Console.WriteLine("Enter new user last name or leave empty to keep: ");
-            var userLastName = Console.ReadLine();
-            Console.WriteLine("Enter new user email or leave empty to keep: ");
-            var userEmail = Console.ReadLine();
-            Console.WriteLine("Enter new user phone number or leave empty to keep: ");
-            var userPhone = Console.ReadLine();
-
-            var updatedUser = new UserEntity
-            {
-                Id = existingUser.Id,
-                FirstName = string.IsNullOrEmpty(userFirstName)
-                    ? existingUser.FirstName
-                    : userFirstName,
-                LastName = string.IsNullOrEmpty(userLastName)
-                    ? existingUser.LastName
-                    : userLastName,
-                Email = string.IsNullOrEmpty(userEmail) ? existingUser.Email : userEmail,
-                PhoneNumber = string.IsNullOrEmpty(userPhone)
-                    ? existingUser.PhoneNumber
-                    : userPhone,
-            };
-
-            var result = await _userService.UpdateUserAsync(updatedUser);
-            if (result != null)
-            {
-                Console.WriteLine("User updated successfully!");
-            }
-            else
-            {
-                Console.WriteLine("Failed to update user!");
-            }
-            Console.ReadKey();
-        }
-
+        // Read
         private async Task ListUsers()
         {
             Console.Clear();
@@ -823,37 +884,337 @@ namespace Presentation.ConsoleApp.Dialogs
             Console.ReadKey();
         }
 
-        private async Task RegisterUser()
+        // Update
+        private async Task UpdateUser()
         {
             Console.Clear();
-            Console.WriteLine("Enter first name:");
-            var userFirstName = Console.ReadLine()!;
-            Console.WriteLine("Enter last name:");
-            var userLastName = Console.ReadLine()!;
-            Console.WriteLine("Enter email:");
-            var userEmail = Console.ReadLine()!;
-            Console.WriteLine("Enter phone number:");
-            var userPhone = Console.ReadLine()!;
-
-            var userRegistrationForm = new UserRegistrationForm
+            var existingUser = await SelectUser();
+            if (existingUser == null)
             {
-                FirstName = userFirstName,
-                LastName = userLastName,
-                Email = userEmail,
-                PhoneNumber = userPhone,
+                return;
+            }
+
+            Console.WriteLine($"Update user: {existingUser.FirstName} {existingUser.LastName}");
+
+            string userFirstName;
+            Console.WriteLine("Enter new user first name or leave empty to keep: ");
+            while (true)
+            {
+                userFirstName = Console.ReadLine()!;
+                if (string.IsNullOrWhiteSpace(userFirstName))
+                {
+                    userFirstName = existingUser.FirstName;
+                    break;
+                }
+
+                string userLastName;
+                Console.WriteLine("Enter new user last name or leave empty to keep: ");
+                while (true)
+                {
+                    userLastName = Console.ReadLine()!;
+                    if (string.IsNullOrWhiteSpace(userLastName))
+                    {
+                        userLastName = existingUser.LastName;
+                        break;
+                    }
+
+                    string userEmail;
+                    Console.WriteLine("Enter new user email or leave empty to keep: ");
+                    while (true)
+                    {
+                        userEmail = Console.ReadLine()!;
+                        if (string.IsNullOrWhiteSpace(userEmail))
+                        {
+                            userEmail = existingUser.Email;
+                            break;
+                        }
+                        if (!EmailValidationHelper.IsValidEmail(userEmail))
+                        {
+                            Console.WriteLine("Invalid Email!");
+                            Console.ReadKey();
+                            break;
+                        }
+
+                        Console.WriteLine("Enter new user phone number or leave empty to keep: ");
+                        var userPhone = Console.ReadLine();
+                        while (true)
+                        {
+                            if (string.IsNullOrWhiteSpace(userPhone))
+                            {
+                                userPhone = existingUser.PhoneNumber;
+                                break;
+                            }
+                            if (!PhoneValidationHelper.IsValidPhoneNumber(userPhone))
+                            {
+                                Console.WriteLine("Invalid phone number!");
+                                Console.ReadKey();
+                                break;
+                            }
+                            break;
+                        }
+
+                        var updatedUser = new UserEntity
+                        {
+                            Id = existingUser.Id,
+                            FirstName = string.IsNullOrEmpty(userFirstName)
+                                ? existingUser.FirstName
+                                : userFirstName,
+                            LastName = string.IsNullOrEmpty(userLastName)
+                                ? existingUser.LastName
+                                : userLastName,
+                            Email = string.IsNullOrEmpty(userEmail)
+                                ? existingUser.Email
+                                : userEmail,
+                            PhoneNumber = string.IsNullOrEmpty(userPhone)
+                                ? existingUser.PhoneNumber
+                                : userPhone,
+                        };
+
+                        var result = await _userService.UpdateUserAsync(updatedUser);
+                        if (result != null)
+                        {
+                            Console.WriteLine("User updated successfully!");
+                        }
+                        else
+                        {
+                            Console.WriteLine("Failed to update user!");
+                        }
+                        Console.ReadKey();
+                    }
+                }
+            }
+        }
+
+        // Delete
+        private async Task DeleteUser()
+        {
+            Console.Clear();
+
+            var existingUser = await SelectUser();
+            if (existingUser == null)
+            {
+                return;
+            }
+
+            Console.WriteLine("Are you sure you want to delete this user? (Y/N)");
+
+            while (true)
+            {
+                var confirmation = Console.ReadLine();
+
+                if (confirmation?.ToLower() == "y")
+                {
+                    var deletedUser = await _userService.DeleteUserAsync(existingUser.Id);
+                    if (deletedUser != null)
+                    {
+                        Console.WriteLine("User deleted successfully!");
+                    }
+                    else
+                    {
+                        Console.WriteLine("Failed to delete user!");
+                    }
+                    Console.ReadKey();
+                    break;
+                }
+                else
+                {
+                    Console.WriteLine("Operation cancelled!");
+                    Console.ReadKey();
+                    break;
+                }
+            }
+        }
+
+        #endregion
+
+        #region // CRUD operations for products
+        // Create
+        private async Task RegisterProduct()
+        {
+            Console.Clear();
+            string productName;
+            Console.WriteLine("Enter Product Name:");
+
+            while (true)
+            {
+                productName = Console.ReadLine()!;
+                if (string.IsNullOrWhiteSpace(productName))
+                {
+                    Console.WriteLine("Product name cannot be empty! Please try again:");
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            Console.WriteLine("Enter Product Price:");
+            decimal price;
+            Console.WriteLine("Enter product price: ");
+
+            while (true)
+            {
+                var priceInput = Console.ReadLine();
+                if (!decimal.TryParse(priceInput, out price) && price > 0)
+                {
+                    Console.WriteLine("Invalid price! Please enter a valid price:");
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            var productRegistrationForm = new ProductRegistrationForm
+            {
+                ProductName = productName,
+                Price = price,
             };
 
-            var newUser = await _userFactory.CreateAsync(userRegistrationForm);
+            var newProduct = ProductFactory.CreateProduct(
+                productRegistrationForm.ProductName,
+                productRegistrationForm.Price
+            );
 
-            var result = await _userService.CreateUserAsync(newUser);
+            var result = await _productService.CreateProductAsync(newProduct);
 
             if (result != null)
             {
-                Console.WriteLine("User registered successfully!");
+                Console.WriteLine("Product registered successfully!");
+                Console.ReadKey();
             }
             else
             {
-                Console.WriteLine("Failed to register user!");
+                Console.WriteLine("Failed to register product!");
+                Console.ReadKey();
+            }
+        }
+
+        // Read
+        private async Task ListProducts()
+        {
+            var products = await _productService.GetProductsAsync();
+
+            if (!products.Any())
+            {
+                Console.WriteLine("No products found!");
+            }
+            else
+            {
+                Console.WriteLine("Product list:");
+                foreach (var product in products)
+                {
+                    Console.WriteLine($"Name: {product.ProductName}");
+                    Console.WriteLine($"Price: {product.Price}");
+                }
+            }
+            Console.ReadKey();
+        }
+
+        // Update
+        private async Task UpdateProduct()
+        {
+            var existingProduct = await SelectProduct();
+            if (existingProduct == null)
+            {
+                return;
+            }
+            Console.WriteLine($"Update product: {existingProduct.ProductName}");
+
+            string productName;
+            Console.WriteLine("Enter new product name or leave empty to keep: ");
+            while (true)
+            {
+                productName = Console.ReadLine()!;
+
+                if (string.IsNullOrWhiteSpace(productName))
+                {
+                    Console.WriteLine("Product name cannot be empty!");
+                    Console.ReadKey();
+                    break;
+                }
+
+                decimal price;
+                Console.WriteLine("Enter new product price or leave empty to keep: ");
+                while (true)
+                {
+                    var priceInput = Console.ReadLine();
+
+                    if (string.IsNullOrWhiteSpace(priceInput))
+                    {
+                        price = existingProduct.Price;
+                        break;
+                    }
+
+                    if (!decimal.TryParse(priceInput, out price) || price <= 0)
+                    {
+                        Console.WriteLine("Invalid price! Please enter a valid price:");
+                        continue;
+                    }
+                    break;
+                }
+
+                var updatedProduct = new ProductEntity
+                {
+                    Id = existingProduct.Id,
+                    ProductName = productName,
+                    Price = price,
+                };
+
+                var result = await _productService.UpdateProductAsync(updatedProduct);
+                if (result != null)
+                {
+                    Console.WriteLine("Product updated successfully!");
+                }
+                else
+                {
+                    Console.WriteLine("Failed to update product!");
+                }
+                Console.ReadKey();
+            }
+        }
+
+        // Delete
+        private async Task DeleteProduct()
+        {
+            var existingProduct = await SelectProduct();
+            if (existingProduct == null)
+            {
+                return;
+            }
+
+            Console.WriteLine("Are you sure you want to delete this product? (Y/N)");
+
+            while (true)
+            {
+                var confirmation = Console.ReadLine()!;
+                if (confirmation?.ToLower() == "y")
+                {
+                    var deletedProduct = await _productService.DeleteProductAsync(
+                        existingProduct.Id
+                    );
+                    if (deletedProduct != null)
+                    {
+                        Console.WriteLine("Product deleted successfully!");
+                    }
+                    else
+                    {
+                        Console.WriteLine("Failed to delete product!");
+                    }
+                    Console.ReadKey();
+                    break;
+                }
+                else if (confirmation?.ToLower() == "n")
+                {
+                    Console.WriteLine("Operation canceled!");
+                    Console.ReadKey();
+                    break;
+                }
+                else
+                {
+                    Console.WriteLine("Invalid input! Please enter Y or N:");
+                }
+                Console.ReadKey();
             }
         }
         #endregion
@@ -896,8 +1257,6 @@ namespace Presentation.ConsoleApp.Dialogs
                 Console.ReadKey();
                 return null;
             }
-
-            await _customerService.UpdateCustomerAsync(existingCustomer);
 
             return existingCustomer;
         }
@@ -944,7 +1303,6 @@ namespace Presentation.ConsoleApp.Dialogs
                 return null;
             }
 
-            await _projectService.UpdateProjectAsync(existingProject);
             return existingProject;
         }
 
@@ -984,6 +1342,46 @@ namespace Presentation.ConsoleApp.Dialogs
             }
             await _userService.UpdateUserAsync(existingUser);
             return existingUser;
+        }
+
+        private async Task<ProductEntity?> SelectProduct()
+        {
+            Console.Clear();
+            var products = await _productService.GetProductsAsync();
+
+            if (products == null || !products.Any())
+            {
+                Console.WriteLine("No products found!");
+                Console.ReadKey();
+                return null;
+            }
+            Console.WriteLine("Products: ");
+            foreach (var product in products)
+            {
+                Console.WriteLine($"Id: {product.Id}");
+                Console.WriteLine($"Name: {product.ProductName}");
+                Console.WriteLine($"Price: {product.Price}");
+            }
+            Console.WriteLine("Enter products Id:");
+            var productIdInput = Console.ReadLine();
+
+            if (!int.TryParse(productIdInput, out int productId))
+            {
+                Console.WriteLine("Invalid Id!");
+                Console.ReadKey();
+                return null;
+            }
+
+            var existingProduct = products.FirstOrDefault(c => c.Id == productId);
+
+            if (existingProduct == null)
+            {
+                Console.WriteLine("Product not found!");
+                Console.ReadKey();
+                return null;
+            }
+
+            return existingProduct;
         }
         #endregion
     }
