@@ -203,7 +203,7 @@ namespace Presentation.ConsoleApp.Dialogs
                 {
                     break;
                 }
-                Console.WriteLine("Invalid status Id!");
+                Console.WriteLine("Invalid status Id! Please try again: ");
             }
 
             var products = await _productService.GetProductsAsync();
@@ -226,14 +226,16 @@ namespace Presentation.ConsoleApp.Dialogs
             while (true)
             {
                 var productIdInput = Console.ReadLine()!;
+
                 if (
                     !int.TryParse(productIdInput, out productId)
-                    && products.Any(p => p.Id == productId)
+                    || !products.Any(p => p.Id == productId)
                 )
                 {
-                    break;
+                    Console.WriteLine("Invalid product Id! Please try again: ");
+                    continue;
                 }
-                Console.WriteLine("Invalid product Id!");
+                break;
             }
 
             var users = await _userService.GetUsersAsync();
@@ -249,13 +251,18 @@ namespace Presentation.ConsoleApp.Dialogs
                 Console.WriteLine($"Name: {user.FirstName} {user.LastName}");
             }
 
-            Console.WriteLine("Enter User Id:");
-            var userId = Console.ReadLine()!;
-            if (!users.Any(u => u.Id.ToString() == userId))
+            Console.WriteLine("Enter user Id:");
+            int userId;
+            while (true)
             {
-                Console.WriteLine("Invalid User Id!");
-                Console.ReadKey();
-                return;
+                var userIdInput = Console.ReadLine()!;
+                if (int.TryParse(userIdInput, out userId) && users.Any(u => u.Id == userId))
+                {
+                    break;
+                }
+                {
+                    Console.WriteLine("Invalid user Id! Please try again: ");
+                }
             }
 
             var customers = await _customerService.GetCustomersAsync();
@@ -272,12 +279,19 @@ namespace Presentation.ConsoleApp.Dialogs
             }
 
             Console.WriteLine("Enter Customer Id:");
-            var customerId = Console.ReadLine()!;
-            if (!customers.Any(c => c.Id.ToString() == customerId))
+            int customerId;
+            while (true)
             {
-                Console.WriteLine("Invalid Customer Id!");
-                Console.ReadKey();
-                return;
+                var customerIdInput = Console.ReadLine()!;
+                if (
+                    int.TryParse(customerIdInput, out customerId)
+                    && customers.Any(c => c.Id == customerId)
+                )
+                {
+                    break;
+                }
+
+                Console.WriteLine("Invalid Customer Id! Please try again: ");
             }
 
             var projectRegistrationForm = new ProjectCreationForm
@@ -287,8 +301,9 @@ namespace Presentation.ConsoleApp.Dialogs
                 StartDate = projectStartDate,
                 EndDate = projectEndDate,
                 StatusId = statusIdInput,
-                CustomerId = int.Parse(customerId),
-                UserId = int.Parse(userId),
+                CustomerId = customerId,
+                ProductId = productId,
+                UserId = userId,
             };
 
             var newProject = await _projectFactory.CreateAsync(projectRegistrationForm);
@@ -303,6 +318,7 @@ namespace Presentation.ConsoleApp.Dialogs
             {
                 Console.WriteLine("Failed to create project!");
             }
+            Console.ReadLine();
         }
 
         // Read
@@ -318,8 +334,8 @@ namespace Presentation.ConsoleApp.Dialogs
                     Console.WriteLine($"Description: {project.ProjectDescription}");
                     Console.WriteLine($"Start date: {project.StartDate}");
                     Console.WriteLine($"End date: {project.EndDate}");
-                    Console.WriteLine($"Status: {project.Status}");
-                    Console.WriteLine($"Customer: {project.Customer}");
+                    Console.WriteLine($"Status: {project.Status.StatusName}");
+                    Console.WriteLine($"Customer: {project.Customer.CustomerName}");
                 }
             }
             else
@@ -915,7 +931,6 @@ namespace Presentation.ConsoleApp.Dialogs
                     if (string.IsNullOrWhiteSpace(userLastName))
                     {
                         userLastName = existingUser.LastName;
-                        break;
                     }
 
                     string userEmail;
@@ -1018,7 +1033,7 @@ namespace Presentation.ConsoleApp.Dialogs
                 }
                 else
                 {
-                    Console.WriteLine("Operation cancelled!");
+                    Console.WriteLine("Operation canceled!");
                     Console.ReadKey();
                     break;
                 }
@@ -1048,14 +1063,13 @@ namespace Presentation.ConsoleApp.Dialogs
                 }
             }
 
-            Console.WriteLine("Enter Product Price:");
             decimal price;
             Console.WriteLine("Enter product price: ");
 
             while (true)
             {
                 var priceInput = Console.ReadLine();
-                if (!decimal.TryParse(priceInput, out price) && price > 0)
+                if (!decimal.TryParse(priceInput, out price) || price <= 0)
                 {
                     Console.WriteLine("Invalid price! Please enter a valid price:");
                 }
@@ -1071,28 +1085,37 @@ namespace Presentation.ConsoleApp.Dialogs
                 Price = price,
             };
 
-            var newProduct = ProductFactory.CreateProduct(
-                productRegistrationForm.ProductName,
-                productRegistrationForm.Price
-            );
-
-            var result = await _productService.CreateProductAsync(newProduct);
-
-            if (result != null)
+            try
             {
-                Console.WriteLine("Product registered successfully!");
-                Console.ReadKey();
+                var newProduct = ProductFactory.CreateProduct(
+                    productRegistrationForm.ProductName,
+                    productRegistrationForm.Price
+                );
+
+                var result = await _productService.CreateProductAsync(newProduct);
+
+                if (result != null)
+                {
+                    Console.WriteLine("Product registered successfully!");
+                    Console.ReadKey();
+                }
+                else
+                {
+                    Console.WriteLine("Failed to register product!");
+                    Console.ReadKey();
+                }
             }
-            else
+            catch (ArgumentException ex)
             {
-                Console.WriteLine("Failed to register product!");
-                Console.ReadKey();
+                Console.WriteLine(ex.Message);
             }
+            Console.ReadKey();
         }
 
         // Read
         private async Task ListProducts()
         {
+            Console.Clear();
             var products = await _productService.GetProductsAsync();
 
             if (!products.Any())
@@ -1240,25 +1263,24 @@ namespace Presentation.ConsoleApp.Dialogs
                 Console.WriteLine($"Phone: {customer.CustomerPhone}");
             }
             Console.WriteLine("Enter Customer Id:");
-            var customerIdInput = Console.ReadLine();
-
-            if (!int.TryParse(customerIdInput, out int customerId))
+            while (true)
             {
-                Console.WriteLine("Invalid Id!");
-                Console.ReadKey();
-                return null;
+                var customerIdInput = Console.ReadLine();
+
+                if (int.TryParse(customerIdInput, out int customerId))
+                {
+                    var existingCustomer = customers.FirstOrDefault(c => c.Id == customerId);
+                    if (existingCustomer != null)
+                    {
+                        return existingCustomer;
+                    }
+                    Console.WriteLine("Customer not found. Please try again: ");
+                }
+                else
+                {
+                    Console.WriteLine("Invalid Id! Please try again");
+                }
             }
-
-            var existingCustomer = customers.FirstOrDefault(c => c.Id == customerId);
-
-            if (existingCustomer == null)
-            {
-                Console.WriteLine("Customer not found!");
-                Console.ReadKey();
-                return null;
-            }
-
-            return existingCustomer;
         }
 
         private async Task<ProjectEntity?> SelectProject()
@@ -1283,27 +1305,30 @@ namespace Presentation.ConsoleApp.Dialogs
                 Console.WriteLine($"Status: {project.Status}");
                 Console.WriteLine($"Customer: {project.Customer}");
                 Console.WriteLine($"User: {project.User}");
+                Console.WriteLine("----------------------------------");
             }
             Console.WriteLine("Enter Project Id:");
-            var projectIdInput = Console.ReadLine();
 
-            if (string.IsNullOrEmpty(projectIdInput))
+            while (true)
             {
-                Console.WriteLine("Invalid Id!");
-                Console.ReadKey();
-                return null;
+                var projectIdInput = Console.ReadLine();
+
+                if (int.TryParse(projectIdInput, out int projectId))
+                {
+                    var existingProject = projects.FirstOrDefault(p =>
+                        p.Id == projectId.ToString()
+                    );
+                    if (existingProject != null)
+                    {
+                        return existingProject;
+                    }
+                    Console.WriteLine("Project not found. Please try again: ");
+                }
+                else
+                {
+                    Console.WriteLine("Invalid Id! Please try again");
+                }
             }
-
-            var existingProject = projects.FirstOrDefault(p => p.Id == projectIdInput);
-
-            if (existingProject == null)
-            {
-                Console.WriteLine("Project not found!");
-                Console.ReadKey();
-                return null;
-            }
-
-            return existingProject;
         }
 
         private async Task<UserEntity?> SelectUser()
@@ -1324,24 +1349,24 @@ namespace Presentation.ConsoleApp.Dialogs
                 Console.WriteLine($"Name: {user.FirstName} {user.LastName}");
             }
             Console.WriteLine("Enter User Id:");
-            var userIdInput = Console.ReadLine();
-
-            if (userIdInput == null)
+            while (true)
             {
-                Console.WriteLine("Invalid Id!");
-                Console.ReadKey();
-                return null;
-            }
+                var userIdInput = Console.ReadLine();
 
-            var existingUser = users.FirstOrDefault(u => u.Id == int.Parse(userIdInput));
-            if (existingUser == null)
-            {
-                Console.WriteLine("User not found!");
-                Console.ReadKey();
-                return null;
+                if (int.TryParse(userIdInput, out int userId))
+                {
+                    var existingUser = users.FirstOrDefault(u => u.Id == userId);
+                    if (existingUser != null)
+                    {
+                        return existingUser;
+                    }
+                    Console.WriteLine("User not found. Please try again: ");
+                }
+                else
+                {
+                    Console.WriteLine("Invalid Id! Please try again");
+                }
             }
-            await _userService.UpdateUserAsync(existingUser);
-            return existingUser;
         }
 
         private async Task<ProductEntity?> SelectProduct()

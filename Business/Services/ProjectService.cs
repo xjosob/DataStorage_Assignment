@@ -37,7 +37,10 @@ namespace Business.Services
         {
             try
             {
-                return await _context.Projects.ToListAsync();
+                return await _context
+                    .Projects.Include(p => p.Status)
+                    .Include(p => p.Customer)
+                    .ToListAsync();
             }
             catch (Exception ex)
             {
