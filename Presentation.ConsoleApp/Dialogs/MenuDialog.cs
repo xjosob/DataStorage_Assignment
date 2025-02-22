@@ -1,4 +1,5 @@
-﻿using Business.Factories;
+﻿using System.Text;
+using Business.Factories;
 using Business.Helpers;
 using Business.Interfaces;
 using Business.Models;
@@ -118,7 +119,11 @@ namespace Presentation.ConsoleApp.Dialogs
             Console.WriteLine("Enter project name:");
             do
             {
-                projectName = Console.ReadLine()!;
+                projectName = ReadInputWithEscape()!;
+                if (projectName == null)
+                {
+                    return;
+                }
                 if (string.IsNullOrEmpty(projectName.Trim()))
                 {
                     Console.WriteLine("Project name cannot be empty! Please try again: ");
@@ -126,13 +131,21 @@ namespace Presentation.ConsoleApp.Dialogs
             } while (string.IsNullOrEmpty(projectName.Trim()));
 
             Console.WriteLine("Enter project description(optional):");
-            var projectDescription = Console.ReadLine()!;
+            var projectDescription = ReadInputWithEscape()!;
+            if (projectDescription == null)
+            {
+                return;
+            }
 
             Console.WriteLine("Enter project start date (yyyy-MM-dd):");
             DateTime projectStartDate = DateTime.MinValue;
             while (true)
             {
-                var projectStartDateInput = Console.ReadLine()!;
+                var projectStartDateInput = ReadInputWithEscape()!;
+                if (projectStartDateInput == null)
+                {
+                    return;
+                }
                 if (!DateValidationHelper.IsValidDate(projectStartDateInput))
                 {
                     Console.WriteLine("Invalid date format! Please use yyyy-MM-dd: ");
@@ -153,7 +166,11 @@ namespace Presentation.ConsoleApp.Dialogs
             DateTime? projectEndDate = null;
             while (true)
             {
-                var projectEndDateInput = Console.ReadLine()!;
+                var projectEndDateInput = ReadInputWithEscape()!;
+                if (projectEndDateInput == null)
+                {
+                    return;
+                }
                 if (string.IsNullOrEmpty(projectEndDateInput))
                 {
                     break;
@@ -193,7 +210,11 @@ namespace Presentation.ConsoleApp.Dialogs
             Console.WriteLine("Enter status Id: ");
             while (true)
             {
-                var statusInput = Console.ReadLine()!;
+                var statusInput = ReadInputWithEscape()!;
+                if (statusInput == null)
+                {
+                    return;
+                }
                 if (
                     int.TryParse(statusInput, out statusIdInput)
                     && statusTypes.Any(s => s.Id == statusIdInput)
@@ -225,7 +246,7 @@ namespace Presentation.ConsoleApp.Dialogs
             Console.WriteLine("Enter product Id: ");
             while (true)
             {
-                var productIdInput = Console.ReadLine()!;
+                var productIdInput = ReadInputWithEscape()!;
 
                 if (
                     !int.TryParse(productIdInput, out productId)
@@ -255,7 +276,11 @@ namespace Presentation.ConsoleApp.Dialogs
             int userId;
             while (true)
             {
-                var userIdInput = Console.ReadLine()!;
+                var userIdInput = ReadInputWithEscape()!;
+                if (userIdInput == null)
+                {
+                    return;
+                }
                 if (int.TryParse(userIdInput, out userId) && users.Any(u => u.Id == userId))
                 {
                     break;
@@ -282,7 +307,11 @@ namespace Presentation.ConsoleApp.Dialogs
             int customerId;
             while (true)
             {
-                var customerIdInput = Console.ReadLine()!;
+                var customerIdInput = ReadInputWithEscape()!;
+                if (customerIdInput == null)
+                {
+                    return;
+                }
                 if (
                     int.TryParse(customerIdInput, out customerId)
                     && customers.Any(c => c.Id == customerId)
@@ -361,7 +390,11 @@ namespace Presentation.ConsoleApp.Dialogs
             Console.WriteLine($"Update project: {existingProject.ProjectName}");
 
             Console.WriteLine("Enter new project name or leave empty to keep: ");
-            var projectName = Console.ReadLine()!;
+            var projectName = ReadInputWithEscape()!;
+            if (projectName == null)
+            {
+                return;
+            }
             if (string.IsNullOrEmpty(projectName))
             {
                 projectName = existingProject.ProjectName;
@@ -369,7 +402,11 @@ namespace Presentation.ConsoleApp.Dialogs
             existingProject.ProjectName = projectName;
 
             Console.WriteLine("Enter new project description or leave empty to keep: ");
-            var projectDescription = Console.ReadLine()!;
+            var projectDescription = ReadInputWithEscape()!;
+            if (projectDescription == null)
+            {
+                return;
+            }
             if (string.IsNullOrEmpty(projectDescription))
             {
                 projectDescription = existingProject.ProjectDescription;
@@ -381,7 +418,11 @@ namespace Presentation.ConsoleApp.Dialogs
             string projectStartDateInput;
             while (true)
             {
-                projectStartDateInput = Console.ReadLine()!;
+                projectStartDateInput = ReadInputWithEscape()!;
+                if (projectStartDateInput == null)
+                {
+                    return;
+                }
 
                 if (string.IsNullOrEmpty(projectStartDateInput))
                 {
@@ -412,7 +453,11 @@ namespace Presentation.ConsoleApp.Dialogs
 
             while (true)
             {
-                projectEndDateInput = Console.ReadLine()!;
+                projectEndDateInput = ReadInputWithEscape()!;
+                if (projectEndDateInput == null)
+                {
+                    return;
+                }
                 if (string.IsNullOrEmpty(projectEndDateInput))
                 {
                     break;
@@ -454,7 +499,11 @@ namespace Presentation.ConsoleApp.Dialogs
             var selectedStatus = existingProject.Status;
             while (true)
             {
-                statusInput = Console.ReadLine()!;
+                statusInput = ReadInputWithEscape()!;
+                if (statusInput == null)
+                {
+                    return;
+                }
                 if (string.IsNullOrEmpty(statusInput))
                 {
                     break;
@@ -494,7 +543,11 @@ namespace Presentation.ConsoleApp.Dialogs
 
             while (true)
             {
-                productIdInput = Console.ReadLine()!;
+                productIdInput = ReadInputWithEscape()!;
+                if (productIdInput == null)
+                {
+                    return;
+                }
                 if (string.IsNullOrEmpty(productIdInput))
                 {
                     break;
@@ -528,7 +581,11 @@ namespace Presentation.ConsoleApp.Dialogs
             var selectedCustomer = existingProject.Customer;
             while (true)
             {
-                customerIdInput = Console.ReadLine()!;
+                customerIdInput = ReadInputWithEscape()!;
+                if (customerIdInput == null)
+                {
+                    return;
+                }
                 if (string.IsNullOrEmpty(customerIdInput))
                 {
                     break;
@@ -562,7 +619,11 @@ namespace Presentation.ConsoleApp.Dialogs
             var selectedUser = existingProject.User;
             while (true)
             {
-                userIdInput = Console.ReadLine()!;
+                userIdInput = ReadInputWithEscape()!;
+                if (userIdInput == null)
+                {
+                    return;
+                }
                 if (string.IsNullOrEmpty(userIdInput))
                 {
                     break;
@@ -634,7 +695,11 @@ namespace Presentation.ConsoleApp.Dialogs
             string customerName;
             while (true)
             {
-                customerName = Console.ReadLine()!;
+                customerName = ReadInputWithEscape()!;
+                if (customerName == null)
+                {
+                    return;
+                }
                 if (string.IsNullOrWhiteSpace(customerName))
                 {
                     Console.WriteLine("Customer name cannot be empty! Please try again:");
@@ -648,8 +713,15 @@ namespace Presentation.ConsoleApp.Dialogs
             string customerEmail;
             while (true)
             {
-                customerEmail = Console.ReadLine()!;
-                if (!EmailValidationHelper.IsValidEmail(customerEmail))
+                customerEmail = ReadInputWithEscape()!;
+                if (customerEmail == null)
+                {
+                    return;
+                }
+                if (
+                    string.IsNullOrEmpty(customerEmail)
+                    || !EmailValidationHelper.IsValidEmail(customerEmail)
+                )
                 {
                     Console.WriteLine("Invalid Email! Please try again: ");
                     continue;
@@ -661,7 +733,11 @@ namespace Presentation.ConsoleApp.Dialogs
             string customerPhone;
             while (true)
             {
-                customerPhone = Console.ReadLine()!;
+                customerPhone = ReadInputWithEscape()!;
+                if (customerPhone == null)
+                {
+                    return;
+                }
                 if (
                     string.IsNullOrWhiteSpace(customerPhone)
                     || !PhoneValidationHelper.IsValidPhoneNumber(customerPhone)
@@ -729,7 +805,11 @@ namespace Presentation.ConsoleApp.Dialogs
             Console.WriteLine($"Update customer: {existingCustomer.CustomerName}");
 
             Console.WriteLine("Enter new customer name or leave empty to keep: ");
-            var customerName = Console.ReadLine()!;
+            var customerName = ReadInputWithEscape()!;
+            if (customerName == null)
+            {
+                return;
+            }
             if (!string.IsNullOrEmpty(customerName))
             {
                 existingCustomer.CustomerName = customerName;
@@ -738,7 +818,11 @@ namespace Presentation.ConsoleApp.Dialogs
             Console.WriteLine("Enter new customer email or leave empty to keep: ");
             while (true)
             {
-                var customerEmail = Console.ReadLine();
+                var customerEmail = ReadInputWithEscape()!;
+                if (customerEmail == null)
+                {
+                    return;
+                }
                 if (
                     string.IsNullOrEmpty(customerEmail)
                     || EmailValidationHelper.IsValidEmail(customerEmail)
@@ -756,7 +840,11 @@ namespace Presentation.ConsoleApp.Dialogs
             Console.WriteLine("Enter new customer phone number or leave empty to keep: ");
             while (true)
             {
-                var customerPhone = Console.ReadLine()!;
+                var customerPhone = ReadInputWithEscape()!;
+                if (customerPhone == null)
+                {
+                    return;
+                }
                 if (
                     string.IsNullOrEmpty(customerPhone)
                     || PhoneValidationHelper.IsValidPhoneNumber(customerPhone)
@@ -839,7 +927,11 @@ namespace Presentation.ConsoleApp.Dialogs
             Console.WriteLine("Enter first name:");
             while (true)
             {
-                userFirstName = Console.ReadLine()!;
+                userFirstName = ReadInputWithEscape()!;
+                if (userFirstName == null)
+                {
+                    return;
+                }
                 if (string.IsNullOrWhiteSpace(userFirstName))
                 {
                     Console.WriteLine("First name cannot be empty! Please try again: ");
@@ -852,7 +944,11 @@ namespace Presentation.ConsoleApp.Dialogs
             Console.WriteLine("Enter last name:");
             while (true)
             {
-                userLastName = Console.ReadLine()!;
+                userLastName = ReadInputWithEscape()!;
+                if (userLastName == null)
+                {
+                    return;
+                }
                 if (string.IsNullOrWhiteSpace(userLastName))
                 {
                     Console.WriteLine("Last name cannot be empty! Please try again: ");
@@ -865,7 +961,11 @@ namespace Presentation.ConsoleApp.Dialogs
             Console.WriteLine("Enter email:");
             while (true)
             {
-                userEmail = Console.ReadLine()!;
+                userEmail = ReadInputWithEscape()!;
+                if (userEmail == null)
+                {
+                    return;
+                }
                 if (string.IsNullOrWhiteSpace(userEmail))
                 {
                     Console.WriteLine("Email cannot be empty! Please try again: ");
@@ -883,7 +983,11 @@ namespace Presentation.ConsoleApp.Dialogs
             Console.WriteLine("Enter phone number:");
             while (true)
             {
-                userPhone = Console.ReadLine()!;
+                userPhone = ReadInputWithEscape()!;
+                if (userPhone == null)
+                {
+                    return;
+                }
                 if (
                     string.IsNullOrWhiteSpace(userPhone)
                     || !PhoneValidationHelper.IsValidPhoneNumber(userPhone)
@@ -954,7 +1058,11 @@ namespace Presentation.ConsoleApp.Dialogs
             Console.WriteLine("Enter new user first name or leave empty to keep: ");
             while (true)
             {
-                var firstNameInput = Console.ReadLine()!;
+                var firstNameInput = ReadInputWithEscape()!;
+                if (firstNameInput == null)
+                {
+                    return;
+                }
                 if (string.IsNullOrWhiteSpace(firstNameInput))
                 {
                     break;
@@ -966,7 +1074,11 @@ namespace Presentation.ConsoleApp.Dialogs
             Console.WriteLine("Enter new user last name or leave empty to keep: ");
             while (true)
             {
-                var lastNameInput = Console.ReadLine()!;
+                var lastNameInput = ReadInputWithEscape()!;
+                if (lastNameInput == null)
+                {
+                    return;
+                }
                 if (string.IsNullOrWhiteSpace(lastNameInput))
                 {
                     break;
@@ -978,7 +1090,11 @@ namespace Presentation.ConsoleApp.Dialogs
             Console.WriteLine("Enter new user email or leave empty to keep: ");
             while (true)
             {
-                var emailInput = Console.ReadLine()!;
+                var emailInput = ReadInputWithEscape()!;
+                if (emailInput == null)
+                {
+                    return;
+                }
                 if (string.IsNullOrWhiteSpace(emailInput))
                 {
                     break;
@@ -996,7 +1112,11 @@ namespace Presentation.ConsoleApp.Dialogs
 
             while (true)
             {
-                var phoneInput = Console.ReadLine()!;
+                var phoneInput = ReadInputWithEscape()!;
+                if (phoneInput == null)
+                {
+                    return;
+                }
                 if (string.IsNullOrWhiteSpace(phoneInput))
                 {
                     break;
@@ -1078,7 +1198,11 @@ namespace Presentation.ConsoleApp.Dialogs
 
             while (true)
             {
-                productName = Console.ReadLine()!;
+                productName = ReadInputWithEscape()!;
+                if (productName == null)
+                {
+                    return;
+                }
                 if (string.IsNullOrWhiteSpace(productName))
                 {
                     Console.WriteLine("Product name cannot be empty! Please try again:");
@@ -1094,7 +1218,11 @@ namespace Presentation.ConsoleApp.Dialogs
 
             while (true)
             {
-                var priceInput = Console.ReadLine();
+                var priceInput = ReadInputWithEscape()!;
+                if (priceInput == null)
+                {
+                    return;
+                }
                 if (!decimal.TryParse(priceInput, out price) || price <= 0)
                 {
                     Console.WriteLine("Invalid price! Please enter a valid price:");
@@ -1173,7 +1301,11 @@ namespace Presentation.ConsoleApp.Dialogs
             Console.WriteLine("Enter new product name or leave empty to keep: ");
             while (true)
             {
-                var productName = Console.ReadLine()!;
+                var productName = ReadInputWithEscape()!;
+                if (productName == null)
+                {
+                    return;
+                }
 
                 if (string.IsNullOrWhiteSpace(productName))
                 {
@@ -1189,7 +1321,11 @@ namespace Presentation.ConsoleApp.Dialogs
             Console.WriteLine("Enter new product price or leave empty to keep: ");
             while (true)
             {
-                var priceInput = Console.ReadLine();
+                var priceInput = ReadInputWithEscape()!;
+                if (priceInput == null)
+                {
+                    return;
+                }
 
                 if (string.IsNullOrWhiteSpace(priceInput))
                 {
@@ -1332,7 +1468,11 @@ namespace Presentation.ConsoleApp.Dialogs
 
             while (true)
             {
-                var projectIdInput = Console.ReadLine();
+                var projectIdInput = ReadInputWithEscape()!;
+                if (projectIdInput == null)
+                {
+                    return null;
+                }
 
                 var existingProject = projects.FirstOrDefault(p => p.Id == projectIdInput);
                 if (existingProject != null)
@@ -1366,7 +1506,11 @@ namespace Presentation.ConsoleApp.Dialogs
             Console.WriteLine("Enter User Id:");
             while (true)
             {
-                var userIdInput = Console.ReadLine();
+                var userIdInput = ReadInputWithEscape();
+                if (userIdInput == null)
+                {
+                    return null;
+                }
 
                 if (int.TryParse(userIdInput, out int userId))
                 {
@@ -1408,7 +1552,11 @@ namespace Presentation.ConsoleApp.Dialogs
             Console.WriteLine("Enter products Id:");
             while (existingProduct == null)
             {
-                var productIdInput = Console.ReadLine();
+                var productIdInput = ReadInputWithEscape()!;
+                if (productIdInput == null)
+                {
+                    return null;
+                }
 
                 if (!int.TryParse(productIdInput, out int productId))
                 {
@@ -1426,6 +1574,36 @@ namespace Presentation.ConsoleApp.Dialogs
 
             return existingProduct;
         }
+
+        // Helper method generated by ChatGPT to read input from user with escape key
+        private static string? ReadInputWithEscape()
+        {
+            StringBuilder input = new();
+
+            while (true)
+            {
+                var key = Console.ReadKey(true); // Read user keypress (without displaying it automatically)
+
+                if (key.Key == ConsoleKey.Escape)
+                    return null; // Cancel operation
+                if (key.Key == ConsoleKey.Enter)
+                    break; // Accept input
+
+                if (key.Key == ConsoleKey.Backspace && input.Length > 0)
+                {
+                    input.Remove(input.Length - 1, 1); // Remove last character
+                    Console.Write("\b \b"); // Erase character on screen
+                    continue;
+                }
+
+                input.Append(key.KeyChar); // Append typed character
+                Console.Write(key.KeyChar); // Display typed character
+            }
+
+            Console.WriteLine(); // Move to next line after Enter
+            return input.ToString();
+        }
+
         #endregion
     }
 }
