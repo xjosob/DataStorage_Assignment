@@ -40,6 +40,8 @@ namespace Business.Services
                 return await _context
                     .Projects.Include(p => p.Status)
                     .Include(p => p.Customer)
+                    .Include(p => p.User)
+                    .Include(p => p.Product)
                     .ToListAsync();
             }
             catch (Exception ex)
@@ -72,18 +74,44 @@ namespace Business.Services
         {
             try
             {
-                _context.Projects.Update(projectEntity);
-                await _context.SaveChangesAsync();
-                return projectEntity;
+                var existingProject = await _context.Projects.FirstOrDefaultAsync(x =>
+                    x.Id == projectEntity.Id
+                );
+
+                if (existingProject != null)
+                {
+                    _context.Entry(existingProject).CurrentValues.SetValues(projectEntity);
+
+                    await _context.Entry(existingProject).Reference(p => p.Status).LoadAsync();
+                    await _context.Entry(existingProject).Reference(p => p.Customer).LoadAsync();
+                    await _context.Entry(existingProject).Reference(p => p.User).LoadAsync();
+
+                    await _context.SaveChangesAsync();
+
+                    return existingProject;
+                }
+                else
+                {
+                    Console.WriteLine("Project not found.");
+                }
             }
             catch (DbUpdateConcurrencyException ex)
             {
                 Console.WriteLine($"Database update error: {ex.Message}");
+                if (ex.InnerException != null)
+                {
+                    Console.WriteLine($"Inner Exception: {ex.InnerException.Message}");
+                }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"An error occurred while updating a project: {ex.Message}");
+                Console.WriteLine($"An error occurred while updating the project: {ex.Message}");
+                if (ex.InnerException != null)
+                {
+                    Console.WriteLine($"Inner Exception: {ex.InnerException.Message}");
+                }
             }
+
             return null!;
         }
 
@@ -97,6 +125,8 @@ namespace Business.Services
                     ?? throw new InvalidOperationException("Project not found.");
                 _context.Projects.Remove(projectEntity);
                 await _context.SaveChangesAsync();
+                _context.ChangeTracker.Clear();
+
                 return projectEntity;
             }
             catch (Exception ex)

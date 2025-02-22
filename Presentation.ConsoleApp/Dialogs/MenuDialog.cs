@@ -336,6 +336,8 @@ namespace Presentation.ConsoleApp.Dialogs
                     Console.WriteLine($"End date: {project.EndDate}");
                     Console.WriteLine($"Status: {project.Status.StatusName}");
                     Console.WriteLine($"Customer: {project.Customer.CustomerName}");
+                    Console.WriteLine($"Product: {project.Product.ProductName}");
+                    Console.WriteLine($"User: {project.User.FirstName} {project.User.LastName}");
                 }
             }
             else
@@ -360,55 +362,79 @@ namespace Presentation.ConsoleApp.Dialogs
 
             Console.WriteLine("Enter new project name or leave empty to keep: ");
             var projectName = Console.ReadLine()!;
-            if (string.IsNullOrEmpty(projectName.Trim()))
+            if (string.IsNullOrEmpty(projectName))
             {
-                Console.WriteLine("Project name cannot be empty!");
-                Console.ReadKey();
-                return;
+                projectName = existingProject.ProjectName;
             }
+            existingProject.ProjectName = projectName;
 
             Console.WriteLine("Enter new project description or leave empty to keep: ");
-            var customerEmail = Console.ReadLine();
+            var projectDescription = Console.ReadLine()!;
+            if (string.IsNullOrEmpty(projectDescription))
+            {
+                projectDescription = existingProject.ProjectDescription;
+            }
+            existingProject.ProjectDescription = projectDescription;
 
             Console.WriteLine("Enter new project start date or leave empty to keep(yyyy-MM-dd): ");
-            var projectStartDateInput = Console.ReadLine()!;
-            if (!DateValidationHelper.IsValidDate(projectStartDateInput))
+            DateTime projectStartDate;
+            string projectStartDateInput;
+            while (true)
             {
-                Console.WriteLine("Invalid date format! Please use yyyy-MM-dd.");
-                Console.ReadKey();
-                return;
+                projectStartDateInput = Console.ReadLine()!;
+
+                if (string.IsNullOrEmpty(projectStartDateInput))
+                {
+                    projectStartDate = existingProject.StartDate;
+                    break;
+                }
+
+                if (!DateValidationHelper.IsValidDate(projectStartDateInput))
+                {
+                    Console.WriteLine(
+                        "Invalid date format! Please use yyyy-MM-dd or leave empty: "
+                    );
+                    continue;
+                }
+                projectStartDate = DateTime.Parse(projectStartDateInput);
+                if (!DateValidationHelper.IsFutureOrTodayDate(projectStartDate))
+                {
+                    Console.WriteLine("Start date must be today or in the future!: ");
+                    continue;
+                }
+                break;
             }
-            DateTime projectStartDate = DateTime.Parse(projectStartDateInput);
-            if (!DateValidationHelper.IsFutureOrTodayDate(projectStartDate))
-            {
-                Console.WriteLine("Start date must be today or in the future!");
-                Console.ReadKey();
-                return;
-            }
+            existingProject.StartDate = projectStartDate;
 
             Console.WriteLine("Enter new project end date or leave empty to keep(yyyy-MM-dd): ");
-            var projectEndDateInput = Console.ReadLine()!;
-            DateTime? projectEndDate = null;
-            if (!string.IsNullOrEmpty(projectEndDateInput))
+            string projectEndDateInput;
+            DateTime? projectEndDate = existingProject.EndDate;
+
+            while (true)
             {
+                projectEndDateInput = Console.ReadLine()!;
+                if (string.IsNullOrEmpty(projectEndDateInput))
+                {
+                    break;
+                }
+
                 if (!DateValidationHelper.IsValidDate(projectEndDateInput))
                 {
-                    Console.WriteLine("Invalid date format! Please use yyyy-MM-dd.");
-                    Console.ReadKey();
-                    return;
+                    Console.WriteLine("Invalid date format! Please use yyyy-MM-d or leave empty: ");
+                    continue;
                 }
                 projectEndDate = DateTime.Parse(projectEndDateInput);
+
                 if (!DateValidationHelper.IsEndDateAfterStartDate(projectStartDate, projectEndDate))
                 {
-                    Console.WriteLine("End date must be after start date!");
-                    Console.ReadKey();
-                    return;
+                    Console.WriteLine("End date must be after start date!: ");
+                    continue;
                 }
+                break;
             }
+            existingProject.EndDate = projectEndDate;
 
             var statusTypes = await _statusService.GetStatusTypesAsync();
-            Console.WriteLine($"Status types count: {statusTypes?.Count()}");
-
             if (statusTypes == null || !statusTypes.Any())
             {
                 Console.WriteLine("No status types found!");
@@ -424,23 +450,33 @@ namespace Presentation.ConsoleApp.Dialogs
             }
 
             Console.WriteLine("Enter status Id: ");
-            var statusInput = Console.ReadLine()!;
-            if (
-                !int.TryParse(statusInput, out var statusIdInput)
-                || !statusTypes.Any(s => s.Id == statusIdInput)
-            )
+            string statusInput;
+            var selectedStatus = existingProject.Status;
+            while (true)
             {
-                Console.WriteLine("Invalid status Id!");
-                Console.ReadKey();
-                return;
+                statusInput = Console.ReadLine()!;
+                if (string.IsNullOrEmpty(statusInput))
+                {
+                    break;
+                }
+                if (
+                    int.TryParse(statusInput, out var statusIdInput)
+                    && statusTypes.Any(s => s.Id == statusIdInput)
+                )
+                {
+                    selectedStatus = statusTypes.First(s => s.Id == statusIdInput);
+                    break;
+                }
+                Console.WriteLine(
+                    "Invalid status id! please chose a valid status or leave empty: "
+                );
             }
+            existingProject.Status = selectedStatus;
 
             var products = await _productService.GetProductsAsync();
-
-            var selectedProduct = products.FirstOrDefault(p => p.Id == existingProject.Product.Id);
-            if (selectedProduct == null)
+            if (products == null || !products.Any())
             {
-                Console.WriteLine("Invalid product selection!");
+                Console.WriteLine("No products found!");
                 Console.ReadKey();
                 return;
             }
@@ -452,17 +488,28 @@ namespace Presentation.ConsoleApp.Dialogs
                 Console.WriteLine($"Status: {product.ProductName}");
             }
 
+            var selectedProduct = existingProject.Product;
+            string productIdInput;
             Console.WriteLine("Enter product Id: ");
-            var productIdInput = Console.ReadLine()!;
-            if (
-                !int.TryParse(productIdInput, out var productId)
-                || !products.Any(p => p.Id == productId)
-            )
+
+            while (true)
             {
-                Console.WriteLine("Invalid product Id!");
-                Console.ReadKey();
-                return;
+                productIdInput = Console.ReadLine()!;
+                if (string.IsNullOrEmpty(productIdInput))
+                {
+                    break;
+                }
+                if (
+                    int.TryParse(productIdInput, out var productId)
+                    && products.Any(p => p.Id == productId)
+                )
+                {
+                    selectedProduct = products.First(p => p.Id == productId);
+                    break;
+                }
+                Console.WriteLine("Invalid product id! Please try again or leave empty: ");
             }
+            existingProject.Product = selectedProduct;
 
             var customers = await _customerService.GetCustomersAsync();
             if (customers == null || !customers.Any())
@@ -477,30 +524,26 @@ namespace Presentation.ConsoleApp.Dialogs
                 Console.WriteLine($"Name: {customer.CustomerName}");
             }
             Console.WriteLine("Enter new existing project customer id or leave empty to keep: ");
-            var customerIdInput = Console.ReadLine()!;
-
-            #region // Validation generated by ChatGPT. If the user leaves customerIdInput empty, the existing customer ID is used. If the user provides a new ID, it is validated.
-            int customerId;
-            if (string.IsNullOrEmpty(customerIdInput))
+            string customerIdInput;
+            var selectedCustomer = existingProject.Customer;
+            while (true)
             {
-                customerId = existingProject.CustomerId;
+                customerIdInput = Console.ReadLine()!;
+                if (string.IsNullOrEmpty(customerIdInput))
+                {
+                    break;
+                }
+                if (
+                    int.TryParse(customerIdInput, out var customerId)
+                    && customers.Any(c => c.Id == customerId)
+                )
+                {
+                    selectedCustomer = customers.First(c => c.Id == customerId);
+                    break;
+                }
+                Console.WriteLine("Invalid customer id! Please try again or leave empty: ");
             }
-            else if (
-                int.TryParse(customerIdInput, out int parsedCustomerId)
-                && customers.Any(c => c.Id == parsedCustomerId)
-            )
-            {
-                customerId = parsedCustomerId;
-            }
-            else
-            {
-                Console.WriteLine("Invalid Customer Id!");
-                Console.ReadKey();
-                return;
-            }
-            #endregion
-
-
+            existingProject.Customer = selectedCustomer;
 
             var users = await _userService.GetUsersAsync();
             if (users == null || !users.Any())
@@ -515,49 +558,26 @@ namespace Presentation.ConsoleApp.Dialogs
                 Console.WriteLine($"Name: {user.FirstName} {user.LastName}");
             }
             Console.WriteLine("Enter new existing user id or leave empty to keep: ");
-            var userIdInput = Console.ReadLine()!;
-
-            int userId;
-            if (string.IsNullOrEmpty(userIdInput))
+            string userIdInput;
+            var selectedUser = existingProject.User;
+            while (true)
             {
-                userId = existingProject.UserId;
+                userIdInput = Console.ReadLine()!;
+                if (string.IsNullOrEmpty(userIdInput))
+                {
+                    break;
+                }
+                if (int.TryParse(userIdInput, out var userId) && users.Any(u => u.Id == userId))
+                {
+                    selectedUser = users.FirstOrDefault(u => u.Id == userId);
+                    break;
+                }
+                Console.WriteLine("Invalid user id! Please try again or leave empty: ");
             }
-            else if (
-                int.TryParse(userIdInput, out int parsedUserId)
-                && users.Any(u => u.Id == parsedUserId)
-            )
-            {
-                userId = parsedUserId;
-            }
-            else
-            {
-                Console.WriteLine("Invalid User Id!");
-                Console.ReadKey();
-                return;
-            }
+            existingProject.User =
+                selectedUser ?? throw new InvalidOperationException("Selected user cannot be null");
 
-            var updatedProject = new ProjectEntity
-            {
-                Id = existingProject.Id,
-                ProjectName = string.IsNullOrEmpty(projectName)
-                    ? existingProject.ProjectName
-                    : projectName,
-                ProjectDescription = string.IsNullOrEmpty(customerEmail)
-                    ? existingProject.ProjectDescription
-                    : customerEmail,
-                StartDate = string.IsNullOrEmpty(projectStartDateInput)
-                    ? existingProject.StartDate
-                    : DateTime.Parse(projectStartDateInput),
-                EndDate = string.IsNullOrEmpty(projectEndDateInput)
-                    ? existingProject.EndDate
-                    : DateTime.Parse(projectEndDateInput),
-                StatusId = statusIdInput,
-                Product = selectedProduct,
-                CustomerId = customerId,
-                UserId = userId,
-            };
-
-            var result = await _projectService.UpdateProjectAsync(updatedProject);
+            var result = await _projectService.UpdateProjectAsync(existingProject);
             if (result != null)
             {
                 Console.WriteLine("Project updated successfully!");
@@ -618,54 +638,61 @@ namespace Presentation.ConsoleApp.Dialogs
                 if (string.IsNullOrWhiteSpace(customerName))
                 {
                     Console.WriteLine("Customer name cannot be empty! Please try again:");
-                    break;
+                    continue;
                 }
 
-                Console.WriteLine("Enter Customer Email:");
-                string customerEmail;
-                while (true)
-                {
-                    customerEmail = Console.ReadLine()!;
-                    if (!EmailValidationHelper.IsValidEmail(customerEmail))
-                    {
-                        Console.WriteLine("Invalid Email! Please try again: ");
-                        break;
-                    }
-
-                    Console.WriteLine("Enter Customer Phone:");
-                    string customerPhone;
-                    while (true)
-                    {
-                        customerPhone = Console.ReadLine()!;
-                        if (!PhoneValidationHelper.IsValidPhoneNumber(customerPhone))
-                        {
-                            Console.WriteLine("Invalid phone number! Please try again: ");
-                            break;
-                        }
-
-                        var customerRegistrationForm = new CustomerRegistrationForm
-                        {
-                            CustomerName = customerName,
-                            CustomerEmail = customerEmail,
-                            CustomerPhone = customerPhone,
-                        };
-
-                        var newCustomer = CustomerFactory.Create(customerRegistrationForm);
-
-                        var result = await _customerService.CreateCustomerAsync(newCustomer);
-
-                        if (result != null)
-                        {
-                            Console.WriteLine("Customer registered successfully!");
-                        }
-                        else
-                        {
-                            Console.WriteLine("Failed to register customer!");
-                        }
-                        Console.ReadKey();
-                    }
-                }
+                break;
             }
+
+            Console.WriteLine("Enter Customer Email:");
+            string customerEmail;
+            while (true)
+            {
+                customerEmail = Console.ReadLine()!;
+                if (!EmailValidationHelper.IsValidEmail(customerEmail))
+                {
+                    Console.WriteLine("Invalid Email! Please try again: ");
+                    continue;
+                }
+                break;
+            }
+
+            Console.WriteLine("Enter Customer Phone:");
+            string customerPhone;
+            while (true)
+            {
+                customerPhone = Console.ReadLine()!;
+                if (
+                    string.IsNullOrWhiteSpace(customerPhone)
+                    || !PhoneValidationHelper.IsValidPhoneNumber(customerPhone)
+                )
+                {
+                    Console.WriteLine("Invalid phone number! Please try again: ");
+                    continue;
+                }
+                break;
+            }
+
+            var customerRegistrationForm = new CustomerRegistrationForm
+            {
+                CustomerName = customerName,
+                CustomerEmail = customerEmail,
+                CustomerPhone = customerPhone,
+            };
+
+            var newCustomer = CustomerFactory.Create(customerRegistrationForm);
+
+            var result = await _customerService.CreateCustomerAsync(newCustomer);
+
+            if (result != null)
+            {
+                Console.WriteLine("Customer registered successfully!");
+            }
+            else
+            {
+                Console.WriteLine("Failed to register customer!");
+            }
+            Console.ReadKey();
         }
 
         // Read
@@ -702,59 +729,60 @@ namespace Presentation.ConsoleApp.Dialogs
             Console.WriteLine($"Update customer: {existingCustomer.CustomerName}");
 
             Console.WriteLine("Enter new customer name or leave empty to keep: ");
+            var customerName = Console.ReadLine()!;
+            if (!string.IsNullOrEmpty(customerName))
+            {
+                existingCustomer.CustomerName = customerName;
+            }
+
+            Console.WriteLine("Enter new customer email or leave empty to keep: ");
             while (true)
             {
-                var customerName = Console.ReadLine();
-
-                Console.WriteLine("Enter new customer email or leave empty to keep: ");
                 var customerEmail = Console.ReadLine();
                 if (
                     string.IsNullOrEmpty(customerEmail)
-                    || !EmailValidationHelper.IsValidEmail(customerEmail)
+                    || EmailValidationHelper.IsValidEmail(customerEmail)
                 )
                 {
-                    Console.WriteLine("Invalid Email!");
-                    Console.ReadKey();
+                    if (!string.IsNullOrEmpty(customerEmail))
+                    {
+                        existingCustomer.CustomerEmail = customerEmail;
+                    }
                     break;
                 }
+                Console.WriteLine("Invalid email! Please try again or leave empty to keep: ");
+            }
 
-                Console.WriteLine("Enter new customer phone number or leave empty to keep: ");
-                var customerPhone = Console.ReadLine();
+            Console.WriteLine("Enter new customer phone number or leave empty to keep: ");
+            while (true)
+            {
+                var customerPhone = Console.ReadLine()!;
                 if (
                     string.IsNullOrEmpty(customerPhone)
-                    || !PhoneValidationHelper.IsValidPhoneNumber(customerPhone)
+                    || PhoneValidationHelper.IsValidPhoneNumber(customerPhone)
                 )
                 {
-                    Console.WriteLine("Invalid phone number!");
-                    Console.ReadKey();
+                    if (!string.IsNullOrEmpty(customerPhone))
+                    {
+                        existingCustomer.CustomerPhone = customerPhone;
+                    }
                     break;
                 }
-
-                var updatedCustomer = new CustomerEntity
-                {
-                    Id = existingCustomer.Id,
-                    CustomerName = string.IsNullOrEmpty(customerName)
-                        ? existingCustomer.CustomerName
-                        : customerName,
-                    CustomerEmail = string.IsNullOrEmpty(customerEmail)
-                        ? existingCustomer.CustomerEmail
-                        : customerEmail,
-                    CustomerPhone = string.IsNullOrEmpty(customerPhone)
-                        ? existingCustomer.CustomerPhone
-                        : customerPhone,
-                };
-
-                var result = await _customerService.UpdateCustomerAsync(updatedCustomer);
-                if (result != null)
-                {
-                    Console.WriteLine("Customer updated successfully!");
-                }
-                else
-                {
-                    Console.WriteLine("Failed to update customer!");
-                }
-                Console.ReadKey();
+                Console.WriteLine(
+                    "Invalid phone number! Please try again or leave empty to keep: "
+                );
             }
+
+            var result = await _customerService.UpdateCustomerAsync(existingCustomer);
+            if (result != null)
+            {
+                Console.WriteLine("Customer updated successfully!");
+            }
+            else
+            {
+                Console.WriteLine("Failed to update customer!");
+            }
+            Console.ReadKey();
         }
 
         // Delete
@@ -768,7 +796,9 @@ namespace Presentation.ConsoleApp.Dialogs
                 return;
             }
 
-            Console.WriteLine("Are you sure you want to delete this customer? (Y/N)");
+            Console.WriteLine(
+                "Are you sure you want to delete this customer? Any associated projects will also get removed (Y/N)"
+            );
 
             while (true)
             {
@@ -792,7 +822,7 @@ namespace Presentation.ConsoleApp.Dialogs
                 }
                 else
                 {
-                    Console.WriteLine("Operation cancelled!");
+                    Console.WriteLine("Operation canceled!");
                 }
                 Console.ReadKey();
             }
@@ -813,8 +843,9 @@ namespace Presentation.ConsoleApp.Dialogs
                 if (string.IsNullOrWhiteSpace(userFirstName))
                 {
                     Console.WriteLine("First name cannot be empty! Please try again: ");
-                    break;
+                    continue;
                 }
+                break;
             }
 
             string userLastName;
@@ -825,8 +856,9 @@ namespace Presentation.ConsoleApp.Dialogs
                 if (string.IsNullOrWhiteSpace(userLastName))
                 {
                     Console.WriteLine("Last name cannot be empty! Please try again: ");
-                    break;
+                    continue;
                 }
+                break;
             }
 
             string userEmail;
@@ -837,46 +869,53 @@ namespace Presentation.ConsoleApp.Dialogs
                 if (string.IsNullOrWhiteSpace(userEmail))
                 {
                     Console.WriteLine("Email cannot be empty! Please try again: ");
-                    break;
+                    continue;
                 }
-
-                string userPhone;
-                Console.WriteLine("Enter phone number:");
-                while (true)
+                if (!EmailValidationHelper.IsValidEmail(userEmail))
                 {
-                    userPhone = Console.ReadLine()!;
-                    if (
-                        string.IsNullOrWhiteSpace(userPhone)
-                        && !PhoneValidationHelper.IsValidPhoneNumber(userPhone)
-                    )
-                    {
-                        Console.WriteLine("Invalid phone number format. Please try again: ");
-                        break;
-                    }
+                    Console.WriteLine("Invalid email format! Please try again: ");
+                    continue;
                 }
-
-                var userRegistrationForm = new UserRegistrationForm
-                {
-                    FirstName = userFirstName,
-                    LastName = userLastName,
-                    Email = userEmail,
-                    PhoneNumber = userPhone,
-                };
-
-                var newUser = await _userFactory.CreateAsync(userRegistrationForm);
-
-                var result = await _userService.CreateUserAsync(newUser);
-
-                if (result != null)
-                {
-                    Console.WriteLine("User registered successfully!");
-                }
-                else
-                {
-                    Console.WriteLine("Failed to register user!");
-                }
-                Console.ReadKey();
+                break;
             }
+
+            string userPhone;
+            Console.WriteLine("Enter phone number:");
+            while (true)
+            {
+                userPhone = Console.ReadLine()!;
+                if (
+                    string.IsNullOrWhiteSpace(userPhone)
+                    || !PhoneValidationHelper.IsValidPhoneNumber(userPhone)
+                )
+                {
+                    Console.WriteLine("Invalid phone number format. Please try again: ");
+                    continue;
+                }
+                break;
+            }
+
+            var userRegistrationForm = new UserRegistrationForm
+            {
+                FirstName = userFirstName,
+                LastName = userLastName,
+                Email = userEmail,
+                PhoneNumber = userPhone,
+            };
+
+            var newUser = await _userFactory.CreateAsync(userRegistrationForm);
+
+            var result = await _userService.CreateUserAsync(newUser);
+
+            if (result != null)
+            {
+                Console.WriteLine("User registered successfully!");
+            }
+            else
+            {
+                Console.WriteLine("Failed to register user!");
+            }
+            Console.ReadKey();
         }
 
         // Read
@@ -912,92 +951,77 @@ namespace Presentation.ConsoleApp.Dialogs
 
             Console.WriteLine($"Update user: {existingUser.FirstName} {existingUser.LastName}");
 
-            string userFirstName;
             Console.WriteLine("Enter new user first name or leave empty to keep: ");
             while (true)
             {
-                userFirstName = Console.ReadLine()!;
-                if (string.IsNullOrWhiteSpace(userFirstName))
+                var firstNameInput = Console.ReadLine()!;
+                if (string.IsNullOrWhiteSpace(firstNameInput))
                 {
-                    userFirstName = existingUser.FirstName;
                     break;
                 }
-
-                string userLastName;
-                Console.WriteLine("Enter new user last name or leave empty to keep: ");
-                while (true)
-                {
-                    userLastName = Console.ReadLine()!;
-                    if (string.IsNullOrWhiteSpace(userLastName))
-                    {
-                        userLastName = existingUser.LastName;
-                    }
-
-                    string userEmail;
-                    Console.WriteLine("Enter new user email or leave empty to keep: ");
-                    while (true)
-                    {
-                        userEmail = Console.ReadLine()!;
-                        if (string.IsNullOrWhiteSpace(userEmail))
-                        {
-                            userEmail = existingUser.Email;
-                            break;
-                        }
-                        if (!EmailValidationHelper.IsValidEmail(userEmail))
-                        {
-                            Console.WriteLine("Invalid Email!");
-                            Console.ReadKey();
-                            break;
-                        }
-
-                        Console.WriteLine("Enter new user phone number or leave empty to keep: ");
-                        var userPhone = Console.ReadLine();
-                        while (true)
-                        {
-                            if (string.IsNullOrWhiteSpace(userPhone))
-                            {
-                                userPhone = existingUser.PhoneNumber;
-                                break;
-                            }
-                            if (!PhoneValidationHelper.IsValidPhoneNumber(userPhone))
-                            {
-                                Console.WriteLine("Invalid phone number!");
-                                Console.ReadKey();
-                                break;
-                            }
-                            break;
-                        }
-
-                        var updatedUser = new UserEntity
-                        {
-                            Id = existingUser.Id,
-                            FirstName = string.IsNullOrEmpty(userFirstName)
-                                ? existingUser.FirstName
-                                : userFirstName,
-                            LastName = string.IsNullOrEmpty(userLastName)
-                                ? existingUser.LastName
-                                : userLastName,
-                            Email = string.IsNullOrEmpty(userEmail)
-                                ? existingUser.Email
-                                : userEmail,
-                            PhoneNumber = string.IsNullOrEmpty(userPhone)
-                                ? existingUser.PhoneNumber
-                                : userPhone,
-                        };
-
-                        var result = await _userService.UpdateUserAsync(updatedUser);
-                        if (result != null)
-                        {
-                            Console.WriteLine("User updated successfully!");
-                        }
-                        else
-                        {
-                            Console.WriteLine("Failed to update user!");
-                        }
-                        Console.ReadKey();
-                    }
-                }
+                existingUser.FirstName = firstNameInput;
+                break;
             }
+
+            Console.WriteLine("Enter new user last name or leave empty to keep: ");
+            while (true)
+            {
+                var lastNameInput = Console.ReadLine()!;
+                if (string.IsNullOrWhiteSpace(lastNameInput))
+                {
+                    break;
+                }
+                existingUser.LastName = lastNameInput;
+                break;
+            }
+
+            Console.WriteLine("Enter new user email or leave empty to keep: ");
+            while (true)
+            {
+                var emailInput = Console.ReadLine()!;
+                if (string.IsNullOrWhiteSpace(emailInput))
+                {
+                    break;
+                }
+                if (!EmailValidationHelper.IsValidEmail(emailInput))
+                {
+                    Console.WriteLine("Invalid Email! Please try again or leave empty to keep");
+                    continue;
+                }
+                existingUser.Email = emailInput;
+                break;
+            }
+
+            Console.WriteLine("Enter new user phone number or leave empty to keep: ");
+
+            while (true)
+            {
+                var phoneInput = Console.ReadLine()!;
+                if (string.IsNullOrWhiteSpace(phoneInput))
+                {
+                    break;
+                }
+                if (!PhoneValidationHelper.IsValidPhoneNumber(phoneInput))
+                {
+                    Console.WriteLine(
+                        "Invalid phone number! Please try again or leave emtpy to keep: "
+                    );
+                    continue;
+                }
+                existingUser.PhoneNumber = phoneInput;
+                break;
+            }
+
+            var result = await _userService.UpdateUserAsync(existingUser);
+            if (result != null)
+            {
+                Console.WriteLine("User updated successfully!");
+            }
+            else
+            {
+                Console.WriteLine("Failed to update user!");
+            }
+            Console.ReadKey();
         }
 
         // Delete
@@ -1011,7 +1035,9 @@ namespace Presentation.ConsoleApp.Dialogs
                 return;
             }
 
-            Console.WriteLine("Are you sure you want to delete this user? (Y/N)");
+            Console.WriteLine(
+                "Are you sure you want to delete this user? Any associated projects will also get removed (Y/N)"
+            );
 
             while (true)
             {
@@ -1144,57 +1170,50 @@ namespace Presentation.ConsoleApp.Dialogs
             }
             Console.WriteLine($"Update product: {existingProduct.ProductName}");
 
-            string productName;
             Console.WriteLine("Enter new product name or leave empty to keep: ");
             while (true)
             {
-                productName = Console.ReadLine()!;
+                var productName = Console.ReadLine()!;
 
                 if (string.IsNullOrWhiteSpace(productName))
                 {
-                    Console.WriteLine("Product name cannot be empty!");
-                    Console.ReadKey();
                     break;
-                }
-
-                decimal price;
-                Console.WriteLine("Enter new product price or leave empty to keep: ");
-                while (true)
-                {
-                    var priceInput = Console.ReadLine();
-
-                    if (string.IsNullOrWhiteSpace(priceInput))
-                    {
-                        price = existingProduct.Price;
-                        break;
-                    }
-
-                    if (!decimal.TryParse(priceInput, out price) || price <= 0)
-                    {
-                        Console.WriteLine("Invalid price! Please enter a valid price:");
-                        continue;
-                    }
-                    break;
-                }
-
-                var updatedProduct = new ProductEntity
-                {
-                    Id = existingProduct.Id,
-                    ProductName = productName,
-                    Price = price,
-                };
-
-                var result = await _productService.UpdateProductAsync(updatedProduct);
-                if (result != null)
-                {
-                    Console.WriteLine("Product updated successfully!");
                 }
                 else
                 {
-                    Console.WriteLine("Failed to update product!");
+                    existingProduct.ProductName = productName;
+                    break;
                 }
-                Console.ReadKey();
             }
+
+            Console.WriteLine("Enter new product price or leave empty to keep: ");
+            while (true)
+            {
+                var priceInput = Console.ReadLine();
+
+                if (string.IsNullOrWhiteSpace(priceInput))
+                {
+                    break;
+                }
+
+                if (decimal.TryParse(priceInput, out decimal price) && price > 0)
+                {
+                    existingProduct.Price = price;
+                    break;
+                }
+                Console.WriteLine("Invalid price! Please try again or leave empty to keep: ");
+            }
+
+            var result = await _productService.UpdateProductAsync(existingProduct);
+            if (result != null)
+            {
+                Console.WriteLine("Product updated successfully!");
+            }
+            else
+            {
+                Console.WriteLine("Failed to update product!");
+            }
+            Console.ReadKey();
         }
 
         // Delete
@@ -1206,7 +1225,9 @@ namespace Presentation.ConsoleApp.Dialogs
                 return;
             }
 
-            Console.WriteLine("Are you sure you want to delete this product? (Y/N)");
+            Console.WriteLine(
+                "Are you sure you want to delete this product? Any associated projects will also get removed (Y/N)"
+            );
 
             while (true)
             {
@@ -1302,9 +1323,9 @@ namespace Presentation.ConsoleApp.Dialogs
                 Console.WriteLine($"Description: {project.ProjectDescription}");
                 Console.WriteLine($"Start Date: {project.StartDate}");
                 Console.WriteLine($"End Date: {project.EndDate}");
-                Console.WriteLine($"Status: {project.Status}");
-                Console.WriteLine($"Customer: {project.Customer}");
-                Console.WriteLine($"User: {project.User}");
+                Console.WriteLine($"Status: {project.Status.StatusName}");
+                Console.WriteLine($"Customer: {project.Customer.CustomerName}");
+                Console.WriteLine($"User: {project.User.FirstName} {project.User.LastName}");
                 Console.WriteLine("----------------------------------");
             }
             Console.WriteLine("Enter Project Id:");
@@ -1313,20 +1334,14 @@ namespace Presentation.ConsoleApp.Dialogs
             {
                 var projectIdInput = Console.ReadLine();
 
-                if (int.TryParse(projectIdInput, out int projectId))
+                var existingProject = projects.FirstOrDefault(p => p.Id == projectIdInput);
+                if (existingProject != null)
                 {
-                    var existingProject = projects.FirstOrDefault(p =>
-                        p.Id == projectId.ToString()
-                    );
-                    if (existingProject != null)
-                    {
-                        return existingProject;
-                    }
-                    Console.WriteLine("Project not found. Please try again: ");
+                    return existingProject;
                 }
                 else
                 {
-                    Console.WriteLine("Invalid Id! Please try again");
+                    Console.WriteLine("Project not found. Please try again: ");
                 }
             }
         }
@@ -1387,23 +1402,26 @@ namespace Presentation.ConsoleApp.Dialogs
                 Console.WriteLine($"Name: {product.ProductName}");
                 Console.WriteLine($"Price: {product.Price}");
             }
+
+            ProductEntity? existingProduct = null;
+
             Console.WriteLine("Enter products Id:");
-            var productIdInput = Console.ReadLine();
-
-            if (!int.TryParse(productIdInput, out int productId))
+            while (existingProduct == null)
             {
-                Console.WriteLine("Invalid Id!");
-                Console.ReadKey();
-                return null;
-            }
+                var productIdInput = Console.ReadLine();
 
-            var existingProduct = products.FirstOrDefault(c => c.Id == productId);
+                if (!int.TryParse(productIdInput, out int productId))
+                {
+                    Console.WriteLine("Invalid Id! Please try again: ");
+                    continue;
+                }
 
-            if (existingProduct == null)
-            {
-                Console.WriteLine("Product not found!");
-                Console.ReadKey();
-                return null;
+                existingProduct = products.FirstOrDefault(c => c.Id == productId);
+
+                if (existingProduct == null)
+                {
+                    Console.WriteLine("Product not found! Please try again: ");
+                }
             }
 
             return existingProduct;
