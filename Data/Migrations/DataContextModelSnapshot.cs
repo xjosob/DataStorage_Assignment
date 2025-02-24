@@ -44,7 +44,7 @@ namespace Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Customers");
+                    b.ToTable("Customers", (string)null);
                 });
 
             modelBuilder.Entity("Data.Entities.ProductEntity", b =>
@@ -64,7 +64,7 @@ namespace Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Products");
+                    b.ToTable("Products", (string)null);
                 });
 
             modelBuilder.Entity("Data.Entities.StatusTypes", b =>
@@ -81,7 +81,7 @@ namespace Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("StatusTypes");
+                    b.ToTable("StatusTypes", (string)null);
 
                     b.HasData(
                         new
@@ -134,7 +134,7 @@ namespace Data.Migrations
                     b.HasIndex("Email")
                         .IsUnique();
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", (string)null);
                 });
 
             modelBuilder.Entity("ProjectEntity", b =>
@@ -178,7 +178,7 @@ namespace Data.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Projects");
+                    b.ToTable("Projects", (string)null);
                 });
 
             modelBuilder.Entity("ProjectEntity", b =>

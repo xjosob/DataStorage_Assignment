@@ -33,7 +33,9 @@ namespace Business.Factories
                     $"Product with ID {form.ProductId} not found."
                 );
 
-            var user = await _userService.GetUserByIdAsync(form.UserId);
+            var user =
+                await _userService.GetUserByIdAsync(form.UserId)
+                ?? throw new InvalidOperationException($"User with ID {form.UserId} not found.");
 
             return new ProjectEntity
             {

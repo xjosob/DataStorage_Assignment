@@ -50,6 +50,7 @@ namespace Presentation.ConsoleApp.Dialogs
                 Console.WriteLine("F7. Delete Product");
                 Console.WriteLine("Esc. Exit");
                 var key = Console.ReadKey(true).Key;
+
                 switch (key)
                 {
                     case ConsoleKey.D1:
@@ -1422,7 +1423,11 @@ namespace Presentation.ConsoleApp.Dialogs
             Console.WriteLine("Enter Customer Id:");
             while (true)
             {
-                var customerIdInput = Console.ReadLine();
+                var customerIdInput = ReadInputWithEscape();
+                if (customerIdInput == null)
+                {
+                    return null;
+                }
 
                 if (int.TryParse(customerIdInput, out int customerId))
                 {

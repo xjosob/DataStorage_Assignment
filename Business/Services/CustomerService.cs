@@ -1,99 +1,47 @@
 ﻿using Business.Interfaces;
-using Data.Contexts;
 using Data.Entities;
-using Microsoft.EntityFrameworkCore;
+using Data.Repositories;
 
 namespace Business.Services
 {
-    public class CustomerService(DataContext context) : ICustomerService
+    public class CustomerService(CustomerRepository customerRepository) : ICustomerService
     {
-        private readonly DataContext _context = context;
+        private readonly CustomerRepository _customerRepository = customerRepository;
 
         // Create
-        public async Task<CustomerEntity> CreateCustomerAsync(CustomerEntity customerEntity)
+        public async Task<CustomerEntity?> CreateCustomerAsync(CustomerEntity customerEntity)
         {
-            try
+            bool isEmailUniqueAsync = await _customerRepository.IsEmailUniqueAsync(
+                customerEntity.CustomerEmail
+            );
+            if (!isEmailUniqueAsync)
             {
-                await _context.Customers.AddAsync(customerEntity);
-                await _context.SaveChangesAsync();
-                return customerEntity;
+                throw new InvalidOperationException("Email is already in use.");
             }
-            catch (DbUpdateException ex)
-            {
-                Console.WriteLine($"Database update error: {ex.Message}");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"An error occurred while creating a customer: {ex.Message}");
-            }
-            return null!;
+            return await _customerRepository.AddAsync(customerEntity);
         }
 
         // Read
         public async Task<IEnumerable<CustomerEntity>> GetCustomersAsync()
         {
-            try
-            {
-                return await _context.Customers.ToListAsync();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"An error occurred while getting customers: {ex.Message}");
-                return [];
-            }
+            return await _customerRepository.GetAllAsync();
         }
 
-        public async Task<CustomerEntity> GetCustomerByIdAsync(int id)
+        public async Task<CustomerEntity?> GetCustomerByIdAsync(int id)
         {
-            try
-            {
-                var customerEntity = await _context.Customers.FirstOrDefaultAsync(x => x.Id == id);
-                return customerEntity ?? null!;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"An error occurred while getting a customer: {ex.Message}");
-                return null!;
-            }
+            return await _customerRepository.GetByIdAsync(id);
         }
 
         // Update
-        public async Task<CustomerEntity> UpdateCustomerAsync(CustomerEntity customerEntity)
+        public async Task<CustomerEntity?> UpdateCustomerAsync(CustomerEntity customerEntity)
         {
-            try
-            {
-                _context.Customers.Update(customerEntity);
-                await _context.SaveChangesAsync();
-                return customerEntity;
-            }
-            catch (DbUpdateException ex)
-            {
-                Console.WriteLine($"Database update error: {ex.Message}");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"An error occurred while updating a customer: {ex.Message}");
-            }
-            return null!;
+            return await _customerRepository.UpdateAsync(customerEntity);
         }
 
         // Delete
-        public async Task<CustomerEntity> DeleteCustomerAsync(int id)
+        public async Task<CustomerEntity?> DeleteCustomerAsync(int id)
         {
-            try
-            {
-                var customerEntity =
-                    await _context.Customers.FirstOrDefaultAsync(x => x.Id == id)
-                    ?? throw new InvalidOperationException("Customer not found.");
-                _context.Customers.Remove(customerEntity);
-                await _context.SaveChangesAsync();
-                return customerEntity;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"An error occurred while deleting a customer: {ex.Message}");
-                return null!;
-            }
+            return await _customerRepository.DeleteAsync(id);
         }
     }
 }

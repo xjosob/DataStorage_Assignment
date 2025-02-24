@@ -9,46 +9,92 @@ namespace Data.Repositories
         private readonly DataContext _context = context;
 
         // Create
-        public async Task<bool> AddUserAsync(UserEntity userEntity)
+        public async Task<UserEntity?> AddUserAsync(UserEntity userEntity)
         {
-            await _context.Users.AddAsync(userEntity);
-            await _context.SaveChangesAsync();
-            return true;
+            try
+            {
+                await _context.Users.AddAsync(userEntity);
+                await _context.SaveChangesAsync();
+                return userEntity;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"An error occurred while adding the user: {ex.Message}");
+                return null;
+            }
         }
 
         // Read
-        public async Task<List<UserEntity>> GetUsersAsync()
+        public async Task<IEnumerable<UserEntity>> GetUsersAsync()
         {
-            return await _context.Users.ToListAsync();
+            try
+            {
+                return await _context.Users.ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"An error occurred while retrieving the users: {ex.Message}");
+                return [];
+            }
+        }
+
+        public async Task<UserEntity?> GetUserByIdAsync(int id)
+        {
+            try
+            {
+                return await _context.Users.FirstOrDefaultAsync(x => x.Id == id);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"An error occurred while retrieving the user: {ex.Message}");
+                return null;
+            }
         }
 
         // Update
-        public async Task<bool> UpdateAsync(UserEntity userEntity)
+        public async Task<UserEntity?> UpdateAsync(UserEntity userEntity)
         {
-            var entity = await _context.Users.FirstOrDefaultAsync(x => x.Id == userEntity.Id);
-            if (entity != null)
+            try
             {
-                entity.Id = userEntity.Id;
-                entity.FirstName = userEntity.FirstName;
-                entity.LastName = userEntity.LastName;
-                entity.Email = userEntity.Email;
-                await _context.SaveChangesAsync();
-                return true;
+                var entity = await _context.Users.FirstOrDefaultAsync(x => x.Id == userEntity.Id);
+                if (entity != null)
+                {
+                    entity.FirstName = userEntity.FirstName;
+                    entity.LastName = userEntity.LastName;
+                    entity.Email = userEntity.Email;
+                    await _context.SaveChangesAsync();
+                    return entity;
+                }
+                Console.WriteLine("Error: user not found.");
+                return null;
             }
-            return false;
+            catch (Exception ex)
+            {
+                Console.WriteLine($"An error occurred while updating the user: {ex.Message}");
+                return null;
+            }
         }
 
         // Delete
-        public async Task<bool> DeleteAsync(int id)
+        public async Task<UserEntity?> DeleteAsync(int id)
         {
-            var entity = await _context.Users.FirstOrDefaultAsync(x => x.Id == id);
-            if (entity != null)
+            try
             {
-                _context.Users.Remove(entity);
-                await _context.SaveChangesAsync();
-                return true;
+                var entity = await _context.Users.FirstOrDefaultAsync(x => x.Id == id);
+                if (entity != null)
+                {
+                    _context.Users.Remove(entity);
+                    await _context.SaveChangesAsync();
+                    return entity;
+                }
+                Console.WriteLine("Error: user not found.");
+                return null;
             }
-            return false;
+            catch (Exception ex)
+            {
+                Console.WriteLine($"An error occurred while deleting the user: {ex.Message}");
+                return null;
+            }
         }
     }
 }

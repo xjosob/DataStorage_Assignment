@@ -9,45 +9,100 @@ namespace Data.Repositories
         private readonly DataContext _context = context;
 
         // Create
-        public async Task<bool> AddAsync(ProductEntity productEntity)
+        public async Task<ProductEntity?> AddAsync(ProductEntity productEntity)
         {
-            await _context.Products.AddAsync(productEntity);
-            await _context.SaveChangesAsync();
-            return true;
+            try
+            {
+                await _context.Products.AddAsync(productEntity);
+                await _context.SaveChangesAsync();
+                return productEntity;
+            }
+            catch (DbUpdateException ex)
+            {
+                Console.WriteLine($"Database update error: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"An error occurred while adding a product: {ex.Message}");
+            }
+            return null;
         }
 
         // Read
-        public async Task<List<ProductEntity>> GetAllAsync()
+        public async Task<IEnumerable<ProductEntity>> GetAllAsync()
         {
-            return await _context.Products.ToListAsync();
+            try
+            {
+                return await _context.Products.ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"An error occurred while retrieving the products: {ex.Message}");
+                return [];
+            }
+        }
+
+        public async Task<ProductEntity?> GetByIdAsync(int id)
+        {
+            try
+            {
+                return await _context.Products.FirstOrDefaultAsync(x => x.Id == id);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"An error occurred while retrieving the product: {ex.Message}");
+                return null;
+            }
         }
 
         // Update
-        public async Task<bool> UpdateAsync(ProductEntity productEntity)
+        public async Task<ProductEntity?> UpdateAsync(ProductEntity productEntity)
         {
-            var entity = await _context.Products.FirstOrDefaultAsync(x => x.Id == productEntity.Id);
-            if (entity != null)
+            try
             {
-                entity.Id = productEntity.Id;
-                entity.ProductName = productEntity.ProductName;
-                entity.Price = productEntity.Price;
-                await _context.SaveChangesAsync();
-                return true;
+                var entity = await _context.Products.FindAsync(productEntity.Id);
+
+                if (entity != null)
+                {
+                    _context.Entry(entity).CurrentValues.SetValues(productEntity);
+                    await _context.SaveChangesAsync();
+                    return entity;
+                }
+                Console.WriteLine($"Product with Id {productEntity.Id} not found.");
+                return null!;
             }
-            return false;
+            catch (Exception ex)
+            {
+                Console.WriteLine(
+                    $"An error occurred while updating the product with id {productEntity.Id}: {ex.Message}"
+                );
+                return null;
+            }
         }
 
         // Delete
-        public async Task<bool> DeleteAsync(int id)
+        public async Task<ProductEntity?> DeleteAsync(int id)
         {
-            var entity = await _context.Products.FirstOrDefaultAsync(x => x.Id == id);
-            if (entity != null)
+            try
             {
-                _context.Products.Remove(entity);
-                await _context.SaveChangesAsync();
-                return true;
+                var entity = await _context.Products.FindAsync(id);
+                if (entity != null)
+                {
+                    _context.Products.Remove(entity);
+                    await _context.SaveChangesAsync();
+                    return entity;
+                }
+                Console.WriteLine($"Product with id {id} not found.");
+                return null!;
             }
-            return false;
+            catch (Exception ex)
+            {
+                // Log exception
+                Console.WriteLine(
+                    $"An error occurred while deleting the product with ID {id}: {ex.Message}"
+                );
+                return null;
+            }
         }
     }
 }
